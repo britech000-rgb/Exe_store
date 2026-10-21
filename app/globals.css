@@ -222,6 +222,11 @@ h2 {
 }
 .share-panel .button { width: 100%; }
 .card-actions .share-panel { left: auto; right: 0; }
+@media (max-width: 799px) {
+  .share-panel, .card-actions .share-panel {
+    position: fixed; left: 12px; right: 12px; top: auto; bottom: 12px; width: auto; z-index: 40;
+  }
+}
 .share-panel-title { font-weight: 700; color: var(--ink); }
 .share-note { color: var(--slate); font-size: 0.85rem; }
 .share-status { color: var(--teal); font-weight: 700; }

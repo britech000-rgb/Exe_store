@@ -9,23 +9,79 @@ type ShareMenuProps = {
   social?: boolean;
 };
 
+type InstagramKind = "story" | "post";
+
+const files = new Map<string, Promise<File>>();
+
+function instagramPaths(path: string) {
+  if (path === "/blog") {
+    return { story: "/instagram/story-blog-index.jpg", post: "/instagram/post-blog-index.jpg", fallback: "blog" };
+  }
+  if (path === "/trends") {
+    return { story: "/instagram/story-trends-index.jpg", post: "/instagram/post-trends-index.jpg", fallback: "trends" };
+  }
+  const guide = path.match(/^\/blog\/([^/]+)$/);
+  if (guide) {
+    return {
+      story: `/instagram/story-blog-${guide[1]}.jpg`,
+      post: `/instagram/post-blog-${guide[1]}.jpg`,
+      fallback: "blog",
+    };
+  }
+  const note = path.match(/^\/trends\/([^/]+)$/);
+  if (note) {
+    return {
+      story: `/instagram/story-trends-${note[1]}.jpg`,
+      post: `/instagram/post-trends-${note[1]}.jpg`,
+      fallback: "trends",
+    };
+  }
+  return null;
+}
+
+function loadImage(url: string, filename: string) {
+  const cached = files.get(url);
+  if (cached) return cached;
+  const pending = fetch(url)
+    .then((response) => {
+      if (!response.ok) throw new Error("missing image");
+      return response.blob();
+    })
+    .then((blob) => new File([blob], filename, { type: "image/jpeg" }));
+  files.set(url, pending);
+  pending.catch(() => files.delete(url));
+  return pending;
+}
+
 export function ShareMenu({ path, name, className = "button button-line", social = false }: ShareMenuProps) {
   const [open, setOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const [manual, setManual] = useState("");
+  const [notice, setNotice] = useState("");
   const [canNative, setCanNative] = useState(false);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
   const titleId = useId();
+  const pictures = social ? instagramPaths(path) : null;
 
   const absolute = () => {
     if (typeof window === "undefined") return path;
     return new URL(path, window.location.origin).toString();
   };
 
+  const caption = () => `${name}\n${absolute()}\nEXE STORE`;
+
   useEffect(() => {
     setCanNative(typeof navigator !== "undefined" && typeof navigator.share === "function");
   }, []);
+
+  useEffect(() => {
+    if (!open || !social) return;
+    const ready = instagramPaths(path);
+    if (!ready) return;
+    loadImage(ready.story, "exe-store-story.jpg").catch(() => undefined);
+    loadImage(ready.post, "exe-store-post.jpg").catch(() => undefined);
+  }, [open, social, path]);
 
   useEffect(() => {
     if (!open) return;
@@ -60,17 +116,20 @@ export function ShareMenu({ path, name, className = "button button-line", social
     buttonRef.current?.focus();
   }
 
-  async function copyLink() {
-    const url = absolute();
+  function reset() {
     setCopied(false);
     setManual("");
+    setNotice("");
+  }
+
+  async function copyText(value: string) {
     try {
-      await navigator.clipboard.writeText(url);
-      setCopied(true);
+      await navigator.clipboard.writeText(value);
+      return true;
     } catch {
       try {
         const field = document.createElement("textarea");
-        field.value = url;
+        field.value = value;
         field.setAttribute("readonly", "");
         field.style.position = "fixed";
         field.style.left = "-9999px";
@@ -78,12 +137,19 @@ export function ShareMenu({ path, name, className = "button button-line", social
         field.select();
         const ok = document.execCommand("copy");
         field.remove();
-        if (!ok) throw new Error("copy failed");
-        setCopied(true);
+        return ok;
       } catch {
-        setManual(url);
+        return false;
       }
     }
+  }
+
+  async function copyLink() {
+    const url = absolute();
+    reset();
+    const ok = await copyText(url);
+    if (ok) setCopied(true);
+    else setManual(url);
   }
 
   async function more() {
@@ -92,6 +158,66 @@ export function ShareMenu({ path, name, className = "button button-line", social
       await navigator.share({ title: name, text: name, url });
     } catch (error) {
       if (error instanceof DOMException && error.name === "AbortError") return;
+    }
+  }
+
+  function download(file: File) {
+    const objectUrl = URL.createObjectURL(file);
+    const link = document.createElement("a");
+    link.href = objectUrl;
+    link.download = file.name;
+    link.click();
+    URL.revokeObjectURL(objectUrl);
+  }
+
+  async function instagram(kind: InstagramKind) {
+    if (!pictures) return;
+    reset();
+    const filename = kind === "story" ? "exe-store-story.jpg" : "exe-store-post.jpg";
+    const preferred = kind === "story" ? pictures.story : pictures.post;
+    const reserve =
+      pictures.fallback === "blog"
+        ? kind === "story"
+          ? "/instagram/story-blog-index.jpg"
+          : "/instagram/post-blog-index.jpg"
+        : kind === "story"
+          ? "/instagram/story-trends-index.jpg"
+          : "/instagram/post-trends-index.jpg";
+    let file: File;
+    try {
+      file = await loadImage(preferred, filename);
+    } catch {
+      try {
+        file = await loadImage(reserve, filename);
+      } catch {
+        setNotice("The image could not be prepared.");
+        return;
+      }
+    }
+
+    const text = caption();
+    const payload = { files: [file], title: name, text };
+    if (typeof navigator.canShare === "function" && navigator.canShare(payload)) {
+      try {
+        await navigator.share(payload);
+        setNotice(kind === "story" ? "Choose Instagram, then Story." : "Choose Instagram, then Post.");
+        return;
+      } catch (error) {
+        if (error instanceof DOMException && error.name === "AbortError") return;
+      }
+    }
+
+    download(file);
+    const copiedCaption = await copyText(text);
+    if (copiedCaption) {
+      setNotice(
+        kind === "story"
+          ? "Story image downloaded. Caption copied. Upload it in Instagram."
+          : "Post image downloaded. Caption copied. Upload it in Instagram.",
+      );
+    } else {
+      setManual(text);
+      setNotice(kind === "story" ? "Story image downloaded." : "Post image downloaded.");
     }
   }
 
@@ -111,8 +237,7 @@ export function ShareMenu({ path, name, className = "button button-line", social
         aria-expanded={open}
         aria-controls={open ? titleId : undefined}
         onClick={() => {
-          setCopied(false);
-          setManual("");
+          reset();
           setOpen((value) => !value);
         }}
       >
@@ -143,12 +268,23 @@ export function ShareMenu({ path, name, className = "button button-line", social
               <a className="button button-line" href={linkedin} target="_blank" rel="noopener noreferrer">
                 Share on LinkedIn
               </a>
+              {pictures ? (
+                <>
+                  <button type="button" className="button button-line" onClick={() => instagram("story")}>
+                    Instagram Story
+                  </button>
+                  <button type="button" className="button button-line" onClick={() => instagram("post")}>
+                    Instagram Post
+                  </button>
+                </>
+              ) : null}
             </>
           ) : null}
           <button type="button" className="button button-line" onClick={copyLink}>
             Copy link
           </button>
           {copied ? <p className="share-status">Link copied</p> : null}
+          {notice ? <p className="share-status">{notice}</p> : null}
           {manual ? (
             <label className="share-manual">
               Copy this link
@@ -160,10 +296,10 @@ export function ShareMenu({ path, name, className = "button button-line", social
               More sharing options
             </button>
           ) : null}
-          {social ? (
+          {pictures ? (
             <p className="share-note">
-              WhatsApp, Facebook, X, and LinkedIn load the photo from this page. Instagram does
-              not. Paste the link into a story sticker, or use More sharing options on your phone.
+              Story is a full-screen image. Post is a feed image. On a phone, choose Instagram.
+              The caption includes the page link.
             </p>
           ) : null}
           <button type="button" className="share-close" onClick={close}>
