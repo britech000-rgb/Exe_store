@@ -466,6 +466,34 @@ h2 {
   margin-top: 8px;
 }
 
+.proof-list {
+  list-style: none;
+  padding: 0;
+  margin: 8px 0 0;
+}
+
+.proof-list li {
+  border-top: 1px solid rgba(18, 18, 18, 0.14);
+  padding: 22px 0 8px;
+  display: grid;
+  gap: 8px;
+}
+
+.proof-list h3 {
+  font-size: clamp(1.6rem, 3vw, 2.2rem);
+  letter-spacing: -0.04em;
+}
+
+.proof-list p { max-width: 40rem; color: var(--muted); }
+
+.proof-list a {
+  font-family: var(--mono);
+  font-size: 0.92rem;
+  font-weight: 500;
+  width: fit-content;
+  text-underline-offset: 4px;
+}
+
 .site-footer {
   background: var(--black);
   color: var(--off);

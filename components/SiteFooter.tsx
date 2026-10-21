@@ -26,6 +26,7 @@ export function SiteFooter() {
           )}
           <AskLink message={site.defaultAskMessage} />
           <Link href="/shop">Shop</Link>
+          <Link href="/proof">Proof</Link>
         </div>
       </div>
     </footer>

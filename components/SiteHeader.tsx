@@ -9,6 +9,7 @@ import { site } from "@/config/site";
 const links = [
   { href: "/shop", label: "Shop" },
   { href: "/work", label: "Work" },
+  { href: "/proof", label: "Proof" },
   { href: "/trends", label: "Trends" },
   { href: "/blog", label: "Blog" },
 ];

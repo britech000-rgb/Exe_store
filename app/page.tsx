@@ -3,8 +3,10 @@ import { AskLink } from "@/components/AskLink";
 import { CategoryCard } from "@/components/CategoryCard";
 import { Rule } from "@/components/Rule";
 import { site } from "@/config/site";
+import { proof } from "@/content/proof";
 import { categories } from "@/content/shop";
 import { services } from "@/content/work";
+import { ProofList } from "@/components/ProofList";
 import { getGuides, getNotes } from "@/lib/content";
 
 export default async function HomePage() {
@@ -75,6 +77,18 @@ export default async function HomePage() {
         </div>
       </section>
       <section className="sheet">
+        <div className="wrap">
+          <div className="section-head">
+            <h2>Proof</h2>
+            <Link href="/proof">Open the list</Link>
+          </div>
+          <p className="muted" style={{ color: "var(--muted)", marginBottom: 8 }}>
+            Sites and systems I have shipped. Kept off the shop.
+          </p>
+          <ProofList items={proof} />
+        </div>
+      </section>
+      <section className="sheet" style={{ paddingTop: 0 }}>
         <div className="wrap home-notes">
           <div>
             <div className="section-head">

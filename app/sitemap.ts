@@ -10,6 +10,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     "",
     "/shop",
     "/work",
+    "/proof",
     "/trends",
     "/blog",
     ...categories.map((category) => `/shop/${category.slug}`),
