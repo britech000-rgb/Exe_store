@@ -14,6 +14,6 @@ export const site = {
     "I supply IT products and I arrange the work. Tell me what you need. I check it, then I confirm the price on WhatsApp before you pay.",
   instagram: "https://instagram.com/briankuria_ke",
   instagramHandle: "@briankuria_ke",
-  whatsappNumber: "",
+  whatsappNumber: "254700030314",
   defaultAskMessage: "Brian, here is what I need: ",
 } as const;
