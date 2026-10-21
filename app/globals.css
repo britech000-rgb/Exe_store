@@ -340,8 +340,12 @@ h2 {
   flex: 1 1 140px;
 }
 
-.card .button-line,
-.card .copy { color: var(--off); }
+.card .button-line { color: var(--off); }
+.card .copy {
+  background: var(--lime);
+  color: var(--black);
+  box-shadow: none;
+}
 
 .share { margin: 22px 0; }
 
@@ -450,7 +454,16 @@ h2 {
 
 .home-notes {
   display: grid;
-  gap: 18px;
+  gap: 28px;
+}
+
+.home-notes .section-head {
+  display: block;
+}
+
+.home-notes .section-head a {
+  display: inline-block;
+  margin-top: 8px;
 }
 
 .site-footer {
@@ -516,7 +529,7 @@ h2 {
 
   .footer-grid { grid-template-columns: 1.4fr 1fr; align-items: start; }
 
-  .home-notes { grid-template-columns: 1fr 1fr; }
+  .home-notes { grid-template-columns: 1fr 1fr; gap: 64px; }
 }
 
 @media (min-width: 1080px) {
