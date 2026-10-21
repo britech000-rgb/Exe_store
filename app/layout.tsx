@@ -4,6 +4,7 @@ import { SiteFooter } from "@/components/SiteFooter";
 import { SiteHeader } from "@/components/SiteHeader";
 import { site } from "@/config/site";
 import { digits, whatsappReady } from "@/lib/links";
+import { jsonLdScript } from "@/lib/seo";
 import { getSiteUrl } from "@/lib/site-url";
 import "./globals.css";
 
@@ -38,6 +39,23 @@ export const metadata: Metadata = {
     title: site.name,
     description: site.description,
   },
+  robots:
+    process.env.VERCEL_ENV === "preview"
+      ? { index: false, follow: false }
+      : {
+          index: true,
+          follow: true,
+          googleBot: {
+            index: true,
+            follow: true,
+            "max-image-preview": "large",
+            "max-snippet": -1,
+            "max-video-preview": -1,
+          },
+        },
+  verification: process.env.GOOGLE_SITE_VERIFICATION
+    ? { google: process.env.GOOGLE_SITE_VERIFICATION }
+    : undefined,
 };
 
 export const viewport: Viewport = {
@@ -49,16 +67,38 @@ export const viewport: Viewport = {
 export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
-  const sameAs = [site.instagram];
-  const jsonLd: Record<string, unknown> = {
-    "@context": "https://schema.org",
+  const origin = getSiteUrl();
+  const organization: Record<string, unknown> = {
     "@type": "Organization",
+    "@id": `${origin}/#organization`,
     name: site.name,
-    url: getSiteUrl(),
+    url: origin,
     description: site.description,
-    sameAs,
+    sameAs: [site.instagram],
   };
-  if (whatsappReady()) jsonLd.telephone = `+${digits(site.whatsappNumber)}`;
+  if (whatsappReady()) organization.telephone = `+${digits(site.whatsappNumber)}`;
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@graph": [
+      organization,
+      {
+        "@type": "WebSite",
+        "@id": `${origin}/#website`,
+        url: origin,
+        name: site.name,
+        description: site.description,
+        publisher: { "@id": `${origin}/#organization` },
+        potentialAction: {
+          "@type": "SearchAction",
+          target: {
+            "@type": "EntryPoint",
+            urlTemplate: `${origin}/shop?q={search_term_string}`,
+          },
+          "query-input": "required name=search_term_string",
+        },
+      },
+    ],
+  };
 
   return (
     <html lang="en" className={`${sans.variable} ${display.variable}`}>
@@ -71,7 +111,7 @@ export default function RootLayout({
         <SiteFooter />
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+          dangerouslySetInnerHTML={{ __html: jsonLdScript(jsonLd) }}
         />
       </body>
     </html>

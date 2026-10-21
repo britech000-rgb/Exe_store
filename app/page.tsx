@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { AskLink } from "@/components/AskLink";
 import { CategoryCard } from "@/components/CategoryCard";
@@ -8,6 +9,19 @@ import { categories } from "@/content/shop";
 import { services } from "@/content/work";
 import { getServicePage } from "@/content/service-pages";
 import { readingMinutes } from "@/lib/reading";
+
+export const metadata: Metadata = {
+  title: { absolute: "EXE STORE · IT products and the work around them" },
+  description:
+    "EXE STORE supplies laptops, networking, CCTV, and the work around them. Send the brief. The price is confirmed on WhatsApp before you pay.",
+  alternates: { canonical: "/" },
+  openGraph: {
+    title: "EXE STORE · IT products and the work around them",
+    description:
+      "EXE STORE supplies laptops, networking, CCTV, and the work around them. Send the brief. The price is confirmed on WhatsApp before you pay.",
+    url: "/",
+  },
+};
 
 const reasons = [
   "You say what you need.",

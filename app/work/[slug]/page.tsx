@@ -3,7 +3,10 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AskLink } from "@/components/AskLink";
 import { getServicePage, servicePages } from "@/content/service-pages";
+import { categories } from "@/content/shop";
 import { getService, services } from "@/content/work";
+import { breadcrumbLd, jsonLdScript } from "@/lib/seo";
+import { absoluteUrl } from "@/lib/site-url";
 
 type Props = { params: Promise<{ slug: string }> };
 
@@ -17,10 +20,20 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
   const service = getService(slug);
   if (!service) return { title: "Not found" };
+  const page = getServicePage(slug);
+  const title = categories.some((category) => category.title === service.title)
+    ? `${service.title} work`
+    : service.title;
   return {
-    title: service.title,
+    title,
     description: service.summary,
     alternates: { canonical: `/work/${service.slug}` },
+    openGraph: {
+      title,
+      description: service.summary,
+      url: `/work/${service.slug}`,
+      images: page ? [{ url: page.image, alt: page.imageAlt }] : undefined,
+    },
   };
 }
 
@@ -29,11 +42,39 @@ export default async function ServicePage({ params }: Props) {
   const service = getService(slug);
   const page = getServicePage(slug);
   if (!service || !page) notFound();
+  const path = `/work/${service.slug}`;
+  const jsonLd = [
+    {
+      "@context": "https://schema.org",
+      "@type": "Service",
+      name: service.title,
+      description: service.summary,
+      url: absoluteUrl(path),
+      image: absoluteUrl(page.image),
+      provider: { "@type": "Organization", name: "EXE STORE", url: absoluteUrl("/") },
+    },
+    {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      mainEntity: page.faqs.map((faq) => ({
+        "@type": "Question",
+        name: faq.question,
+        acceptedAnswer: { "@type": "Answer", text: faq.answer },
+      })),
+    },
+    breadcrumbLd([
+      { name: "Home", path: "/" },
+      { name: "Services", path: "/work" },
+      { name: service.title, path },
+    ]),
+  ];
 
   return (
     <main id="content" className="sheet">
       <div className="wrap service-page">
         <p className="crumbs">
+          <Link href="/">Home</Link>
+          <span aria-hidden="true">/</span>
           <Link href="/work">Services</Link>
           <span aria-hidden="true">/</span>
           {service.title}
@@ -116,6 +157,7 @@ export default async function ServicePage({ params }: Props) {
             ))}
         </p>
       </div>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdScript(jsonLd) }} />
     </main>
   );
 }

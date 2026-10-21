@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import { ShopBrowser } from "@/components/ShopBrowser";
 import { categories } from "@/content/shop";
+import { jsonLdScript } from "@/lib/seo";
+import { absoluteUrl } from "@/lib/site-url";
 
 export const metadata: Metadata = {
   title: "Shop",
@@ -11,6 +13,18 @@ export const metadata: Metadata = {
 };
 
 export default function ShopPage() {
+  const list = {
+    "@context": "https://schema.org",
+    "@type": "ItemList",
+    name: "EXE STORE catalogue",
+    itemListElement: categories.map((category, index) => ({
+      "@type": "ListItem",
+      position: index + 1,
+      name: category.title,
+      url: absoluteUrl(`/shop/${category.slug}`),
+    })),
+  };
+
   return (
     <main id="content">
       <section className="sheet page-intro">
@@ -27,6 +41,7 @@ export default function ShopPage() {
           </Suspense>
         </div>
       </section>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdScript(list) }} />
     </main>
   );
 }

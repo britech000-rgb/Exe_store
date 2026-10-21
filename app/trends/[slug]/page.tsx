@@ -7,8 +7,9 @@ import { ShareMenu } from "@/components/ShareMenu";
 import { AskLink } from "@/components/AskLink";
 import { notes } from "@/content/notes";
 import { getNote, getNotes } from "@/lib/content";
+import { breadcrumbLd, jsonLdScript } from "@/lib/seo";
 import { articleShareMeta, shareImage } from "@/lib/share-image";
-import { getSiteUrl } from "@/lib/site-url";
+import { absoluteUrl, getSiteUrl } from "@/lib/site-url";
 
 type Props = { params: Promise<{ slug: string }> };
 
@@ -38,15 +39,27 @@ export default async function NotePage({ params }: Props) {
   if (!note) notFound();
   const more = notes.filter((item) => item.slug !== note.slug).slice(0, 3);
   const card = shareImage("trends", note.slug);
-  const jsonLd = {
+  const path = `/trends/${note.slug}`;
+  const posting: Record<string, unknown> = {
     "@context": "https://schema.org",
     "@type": "BlogPosting",
     headline: note.title,
     description: note.paragraphs[0],
-    image: `${getSiteUrl()}${card}`,
-    mainEntityOfPage: `${getSiteUrl()}/trends/${note.slug}`,
+    image: absoluteUrl(card),
+    mainEntityOfPage: absoluteUrl(path),
+    articleSection: note.category,
     publisher: { "@type": "Organization", name: "EXE STORE", url: getSiteUrl() },
   };
+  if (note.publishedAt) posting.datePublished = note.publishedAt;
+  const jsonLd = [
+    posting,
+    breadcrumbLd([
+      { name: "Home", path: "/" },
+      { name: "Blog & Insights", path: "/blog" },
+      { name: "Trends", path: "/trends" },
+      { name: note.title, path },
+    ]),
+  ];
 
   return (
     <main id="content" className="sheet">
@@ -57,6 +70,8 @@ export default async function NotePage({ params }: Props) {
           <Link href="/blog">Blog & Insights</Link>
           <span aria-hidden="true">/</span>
           <Link href="/trends">Trends</Link>
+          <span aria-hidden="true">/</span>
+          {note.title}
         </p>
         <p className="kicker">
           <Link href="/trends">Trends</Link>
@@ -92,7 +107,7 @@ export default async function NotePage({ params }: Props) {
           </p>
         </div>
       </div>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdScript(jsonLd) }} />
     </main>
   );
 }

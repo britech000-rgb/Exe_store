@@ -5,6 +5,8 @@ import { AskLink } from "@/components/AskLink";
 import { ShareMenu } from "@/components/ShareMenu";
 import { ZoomImage } from "@/components/ZoomImage";
 import { categories, getCategory } from "@/content/shop";
+import { breadcrumbLd, jsonLdScript } from "@/lib/seo";
+import { absoluteUrl } from "@/lib/site-url";
 
 type Props = { params: Promise<{ slug: string }> };
 
@@ -37,19 +39,29 @@ export default async function CategoryPage({ params }: Props) {
   const path = `/shop/${category.slug}`;
   const others = categories.filter((item) => item.slug !== category.slug).slice(0, 3);
 
-  const jsonLd = {
-    "@context": "https://schema.org",
-    "@type": "Product",
-    name: category.title,
-    description: category.summary,
-    image: category.image,
-    category: category.title,
-  };
+  const jsonLd = [
+    {
+      "@context": "https://schema.org",
+      "@type": "CollectionPage",
+      name: category.title,
+      description: category.summary,
+      url: absoluteUrl(path),
+      image: absoluteUrl(category.image),
+      isPartOf: { "@type": "WebSite", name: "EXE STORE", url: absoluteUrl("/") },
+    },
+    breadcrumbLd([
+      { name: "Home", path: "/" },
+      { name: "Shop", path: "/shop" },
+      { name: category.title, path },
+    ]),
+  ];
 
   return (
     <main id="content" className="sheet">
       <div className="wrap">
         <p className="crumbs">
+          <Link href="/">Home</Link>
+          <span aria-hidden="true">/</span>
           <Link href="/shop">Shop</Link>
           <span aria-hidden="true">/</span>
           {category.title}
@@ -111,7 +123,7 @@ export default async function CategoryPage({ params }: Props) {
             </Link>
           ))}
         </p>
-        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdScript(jsonLd) }} />
       </div>
     </main>
   );

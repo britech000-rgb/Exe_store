@@ -8,8 +8,9 @@ import { guides } from "@/content/guides";
 import { categories } from "@/content/shop";
 import { getGuide, getGuides } from "@/lib/content";
 import { readingMinutes } from "@/lib/reading";
+import { breadcrumbLd, jsonLdScript } from "@/lib/seo";
 import { articleShareMeta, shareImage } from "@/lib/share-image";
-import { getSiteUrl } from "@/lib/site-url";
+import { absoluteUrl, getSiteUrl } from "@/lib/site-url";
 
 type Props = { params: Promise<{ slug: string }> };
 
@@ -46,15 +47,26 @@ export default async function GuidePage({ params }: Props) {
     ? new Intl.DateTimeFormat("en", { dateStyle: "long" }).format(new Date(guide.publishedAt))
     : null;
   const card = shareImage("blog", guide.slug);
-  const jsonLd = {
+  const path = `/blog/${guide.slug}`;
+  const posting: Record<string, unknown> = {
     "@context": "https://schema.org",
     "@type": "BlogPosting",
     headline: guide.title,
     description: guide.excerpt,
-    image: `${getSiteUrl()}${card}`,
-    mainEntityOfPage: `${getSiteUrl()}/blog/${guide.slug}`,
+    image: absoluteUrl(card),
+    mainEntityOfPage: absoluteUrl(path),
+    articleSection: guide.category,
     publisher: { "@type": "Organization", name: "EXE STORE", url: getSiteUrl() },
   };
+  if (guide.publishedAt) posting.datePublished = guide.publishedAt;
+  const jsonLd = [
+    posting,
+    breadcrumbLd([
+      { name: "Home", path: "/" },
+      { name: "Blog & Insights", path: "/blog" },
+      { name: guide.title, path },
+    ]),
+  ];
 
   return (
     <main id="content" className="sheet">
@@ -64,7 +76,7 @@ export default async function GuidePage({ params }: Props) {
           <span aria-hidden="true">/</span>
           <Link href="/blog">Blog & Insights</Link>
           <span aria-hidden="true">/</span>
-          {guide.category}
+          {guide.title}
         </p>
         <p className="kicker">{guide.advertised ? "Featured" : guide.category}</p>
         <h1>{guide.title}</h1>
@@ -111,7 +123,7 @@ export default async function GuidePage({ params }: Props) {
           </p>
         </div>
       </div>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdScript(jsonLd) }} />
     </main>
   );
 }

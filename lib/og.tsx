@@ -13,8 +13,8 @@ export function ogImage(kicker: string, title: string) {
           display: "flex",
           flexDirection: "column",
           justifyContent: "space-between",
-          background: "#0b0b0b",
-          color: "#f4f1ea",
+          background: "#142033",
+          color: "#f7f7f4",
           padding: "68px",
         }}
       >
@@ -26,7 +26,7 @@ export function ogImage(kicker: string, title: string) {
             width: "100%",
           }}
         >
-          <div style={{ display: "flex", fontSize: 28, color: "#d6ff3a" }}>
+          <div style={{ display: "flex", fontSize: 28, color: "#9fd4d6" }}>
             {kicker.toUpperCase()}
           </div>
           <div style={{ display: "flex", fontSize: 28 }}>EXE STORE</div>
@@ -49,7 +49,7 @@ export function ogImage(kicker: string, title: string) {
               display: "flex",
               marginTop: 28,
               fontSize: 32,
-              color: "#d6ff3a",
+              color: "#9fd4d6",
             }}
           >
             I check it. Then I confirm the price.
