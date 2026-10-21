@@ -6,9 +6,10 @@ type ShareMenuProps = {
   path: string;
   name: string;
   className?: string;
+  social?: boolean;
 };
 
-export function ShareMenu({ path, name, className = "button button-line" }: ShareMenuProps) {
+export function ShareMenu({ path, name, className = "button button-line", social = false }: ShareMenuProps) {
   const [open, setOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const [manual, setManual] = useState("");
@@ -94,7 +95,12 @@ export function ShareMenu({ path, name, className = "button button-line" }: Shar
     }
   }
 
-  const whatsapp = `https://wa.me/?text=${encodeURIComponent(`${name}\n${typeof window === "undefined" ? path : absolute()}`)}`;
+  const pageUrl = typeof window === "undefined" ? path : absolute();
+  const encodedUrl = encodeURIComponent(pageUrl);
+  const whatsapp = `https://wa.me/?text=${encodeURIComponent(`${name}\n${pageUrl}`)}`;
+  const facebook = `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`;
+  const xShare = `https://x.com/intent/tweet?url=${encodedUrl}&text=${encodeURIComponent(name)}`;
+  const linkedin = `https://www.linkedin.com/sharing/share-offsite/?url=${encodedUrl}`;
 
   return (
     <div className="share-menu">
@@ -126,6 +132,19 @@ export function ShareMenu({ path, name, className = "button button-line" }: Shar
           <a className="button" href={whatsapp} target="_blank" rel="noopener noreferrer">
             Share on WhatsApp
           </a>
+          {social ? (
+            <>
+              <a className="button button-line" href={facebook} target="_blank" rel="noopener noreferrer">
+                Share on Facebook
+              </a>
+              <a className="button button-line" href={xShare} target="_blank" rel="noopener noreferrer">
+                Share on X
+              </a>
+              <a className="button button-line" href={linkedin} target="_blank" rel="noopener noreferrer">
+                Share on LinkedIn
+              </a>
+            </>
+          ) : null}
           <button type="button" className="button button-line" onClick={copyLink}>
             Copy link
           </button>
@@ -140,6 +159,12 @@ export function ShareMenu({ path, name, className = "button button-line" }: Shar
             <button type="button" className="button button-line" onClick={more}>
               More sharing options
             </button>
+          ) : null}
+          {social ? (
+            <p className="share-note">
+              WhatsApp, Facebook, X, and LinkedIn load the photo from this page. Instagram does
+              not. Paste the link into a story sticker, or use More sharing options on your phone.
+            </p>
           ) : null}
           <button type="button" className="share-close" onClick={close}>
             Close

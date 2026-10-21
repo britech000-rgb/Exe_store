@@ -1,12 +1,15 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { ArticlePhoto } from "@/components/ArticlePhoto";
 import { RelatedLinks } from "@/components/RelatedLinks";
 import { ShareMenu } from "@/components/ShareMenu";
 import { guides } from "@/content/guides";
 import { categories } from "@/content/shop";
 import { getGuide, getGuides } from "@/lib/content";
 import { readingMinutes } from "@/lib/reading";
+import { articleShareMeta, shareImage } from "@/lib/share-image";
+import { getSiteUrl } from "@/lib/site-url";
 
 type Props = { params: Promise<{ slug: string }> };
 
@@ -21,11 +24,13 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
   const guide = await getGuide(slug);
   if (!guide) return { title: "Not found" };
-  return {
+  return articleShareMeta({
     title: guide.title,
     description: guide.excerpt,
-    alternates: { canonical: `/blog/${guide.slug}` },
-  };
+    path: `/blog/${guide.slug}`,
+    image: shareImage("blog", guide.slug),
+    alt: `${guide.title}. EXE STORE Blog & Insights.`,
+  });
 }
 
 export default async function GuidePage({ params }: Props) {
@@ -40,6 +45,16 @@ export default async function GuidePage({ params }: Props) {
   const published = guide.publishedAt
     ? new Intl.DateTimeFormat("en", { dateStyle: "long" }).format(new Date(guide.publishedAt))
     : null;
+  const card = shareImage("blog", guide.slug);
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "BlogPosting",
+    headline: guide.title,
+    description: guide.excerpt,
+    image: `${getSiteUrl()}${card}`,
+    mainEntityOfPage: `${getSiteUrl()}/blog/${guide.slug}`,
+    publisher: { "@type": "Organization", name: "EXE STORE", url: getSiteUrl() },
+  };
 
   return (
     <main id="content" className="sheet">
@@ -58,7 +73,15 @@ export default async function GuidePage({ params }: Props) {
           {readingMinutes([guide.excerpt, ...guide.paragraphs])} min read
           {published ? ` · ${published}` : " · No publication date on file"}
         </p>
-        <ShareMenu path={`/blog/${guide.slug}`} name={guide.title} />
+        <ShareMenu path={`/blog/${guide.slug}`} name={guide.title} social />
+        {guide.image && guide.imageAlt && guide.photoHref && guide.photoLabel ? (
+          <ArticlePhoto
+            src={guide.image}
+            alt={guide.imageAlt}
+            href={guide.photoHref}
+            label={guide.photoLabel}
+          />
+        ) : null}
         <div className="prose">
           {guide.paragraphs.map((paragraph) => (
             <p key={paragraph}>{paragraph}</p>
@@ -88,6 +111,7 @@ export default async function GuidePage({ params }: Props) {
           </p>
         </div>
       </div>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
     </main>
   );
 }

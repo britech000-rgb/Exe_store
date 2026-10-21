@@ -148,7 +148,7 @@ h2 {
 .card-actions { margin-top: auto; }
 .card-actions .button, .card-actions .share-menu { flex: 1 1 120px; }
 .share-menu { position: relative; }
-.share-menu > .button { width: 100%; }
+.card-actions .share-menu > .button { width: 100%; }
 
 .catalogue-tools { display: grid; gap: 8px; margin: 22px 0 12px; }
 .catalogue-search { display: flex; gap: 8px; flex-wrap: wrap; }
@@ -172,11 +172,18 @@ h2 {
 .rule p { font-family: var(--display); font-size: clamp(1.2rem, 2vw, 1.6rem); font-weight: 700; letter-spacing: -0.03em; }
 
 .article-grid, .insight-top, .insight-side { display: grid; gap: 16px; }
-.story { background: var(--white); border: 1px solid var(--line); border-radius: var(--radius); padding: 18px; }
+.story { background: var(--white); border: 1px solid var(--line); border-radius: var(--radius); padding: 18px; overflow: hidden; }
 .story-lead { background: var(--ink); color: white; }
-.story-lead p, .story-lead .index-label { color: #d5dde6; }
-.story h3 { font-size: 1.35rem; margin: 6px 0; }
+.story-lead p, .story-lead .index-label, .story-lead .meta { color: #d5dde6; }
+.story h2, .story h3 { font-size: 1.35rem; margin: 6px 0; }
+.story-photo { display: block; margin: -18px -18px 14px; overflow: hidden; }
+.story-photo img { width: 100%; aspect-ratio: 1200 / 630; object-fit: cover; object-position: center 58%; }
 .meta { font-size: 0.9rem; color: var(--slate); margin-top: 8px; }
+.article-photo { margin: 22px 0 0; }
+.article-photo > a { display: block; overflow: hidden; border-radius: var(--radius); border: 1px solid var(--line); background: var(--white); }
+.article-photo img { width: 100%; aspect-ratio: 1200 / 630; object-fit: cover; object-position: center 58%; }
+.article-photo figcaption { margin-top: 8px; color: var(--slate); font-size: 0.9rem; max-width: 65ch; }
+.article-photo figcaption a { color: var(--teal); display: inline; }
 .contact-strip { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 16px; align-items: center; background: var(--white); border: 1px solid var(--line); border-radius: var(--radius); padding: 24px; }
 
 .product { display: grid; gap: 24px; }
@@ -208,11 +215,15 @@ h2 {
 }
 
 .share-panel {
-  position: absolute; z-index: 5; right: 0; top: calc(100% + 8px); width: min(280px, 80vw);
+  position: absolute; z-index: 5; left: 0; top: calc(100% + 8px); width: min(320px, calc(100vw - 48px));
+  max-height: min(70vh, 560px); overflow: auto;
   background: var(--white); border: 1px solid var(--line); border-radius: var(--radius);
   box-shadow: var(--shadow); padding: 14px; display: grid; gap: 8px;
 }
-.share-panel-title { font-weight: 700; }
+.share-panel .button { width: 100%; }
+.card-actions .share-panel { left: auto; right: 0; }
+.share-panel-title { font-weight: 700; color: var(--ink); }
+.share-note { color: var(--slate); font-size: 0.85rem; }
 .share-status { color: var(--teal); font-weight: 700; }
 .share-close { background: none; border: 0; color: var(--slate); font: inherit; cursor: pointer; justify-self: start; min-height: 44px; }
 .share-manual { display: grid; gap: 6px; font-size: 0.85rem; color: var(--slate); }
@@ -226,12 +237,19 @@ h2 {
   background: var(--ink); color: white; border-radius: var(--radius); padding: 24px;
   display: flex; flex-direction: column; gap: 12px;
 }
+.advertised-photo > div { display: flex; flex-direction: column; gap: 12px; align-items: flex-start; }
+.advertised-media { display: block; overflow: hidden; border-radius: 12px; }
+.advertised-media img { width: 100%; aspect-ratio: 1200 / 630; object-fit: cover; object-position: center 58%; }
 .advertised h2 a { text-decoration: none; }
 .advertised p { color: #d5dde6; }
 .advertised-top { display: flex; justify-content: space-between; gap: 8px; font-size: 0.75rem; letter-spacing: 0.12em; text-transform: uppercase; color: #9fe; }
 .advertised-grid, .archive { display: grid; gap: 12px; }
 .archive { list-style: none; padding: 0; margin: 12px 0 0; }
-.archive li { display: grid; grid-template-columns: auto 1fr; gap: 12px; padding: 16px 0; border-top: 1px solid var(--line); }
+.archive li { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 12px; padding: 16px 0; border-top: 1px solid var(--line); }
+.archive li > span { grid-row: 1 / span 2; }
+.archive-photo { grid-column: 2; display: block; }
+.archive li > div { grid-column: 2; }
+.archive-photo img { width: min(100%, 280px); aspect-ratio: 1200 / 630; object-fit: cover; object-position: center 58%; border-radius: 10px; }
 .archive h3 { font-size: 1.3rem; }
 .archive h3 a { text-decoration: none; }
 .archive p { color: var(--slate); }
@@ -279,6 +297,11 @@ h2 {
   .rule { grid-template-columns: repeat(3, 1fr); }
   .article-grid { grid-template-columns: 1fr 1fr 1fr; }
   .insight-side { align-content: stretch; }
+  .advertised-photo { display: grid; grid-template-columns: 1.05fr 0.95fr; gap: 28px; align-items: center; }
+  .archive li:has(.archive-photo) { grid-template-columns: auto 200px minmax(0, 1fr); align-items: center; }
+  .archive li:has(.archive-photo) > span { grid-row: auto; }
+  .archive li:has(.archive-photo) .archive-photo { grid-column: 2; grid-row: 1; }
+  .archive li:has(.archive-photo) > div { grid-column: 3; grid-row: 1; }
 }
 @media (min-width: 1100px) {
   .grid.cards { grid-template-columns: repeat(4, 1fr); }
@@ -286,10 +309,10 @@ h2 {
 }
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
-  .button, .card, .hero-photo img { transition: none; }
+  .button, .card, .hero-photo img, .story-photo img, .article-photo img, .advertised-media img { transition: none; }
 }
 @media (hover: hover) and (pointer: fine) {
   .button:hover { transform: translateY(-1px); }
-  .card-media img, .category-rail img, .hero-photo img { transition: transform 200ms ease; }
-  .card:hover .card-media img, .category-rail a:hover img { transform: scale(1.03); }
+  .card-media img, .category-rail img, .hero-photo img, .story-photo img, .article-photo img, .advertised-media img { transition: transform 200ms ease; }
+  .card:hover .card-media img, .category-rail a:hover img, .story:hover .story-photo img, .article-photo a:hover img, .advertised-media:hover img { transform: scale(1.03); }
 }

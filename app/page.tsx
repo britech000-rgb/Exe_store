@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { AskLink } from "@/components/AskLink";
 import { CategoryCard } from "@/components/CategoryCard";
+import { StoryCard } from "@/components/StoryCard";
 import { site } from "@/config/site";
 import { guides } from "@/content/guides";
 import { categories } from "@/content/shop";
@@ -165,14 +166,17 @@ export default function HomePage() {
           </div>
           <div className="article-grid">
             {articles.map((guide) => (
-              <article key={guide.slug} className={guide.advertised ? "story story-lead" : "story"}>
-                <p className="index-label">{guide.category}</p>
-                <h3>
-                  <Link href={`/blog/${guide.slug}`}>{guide.title}</Link>
-                </h3>
-                <p>{guide.excerpt}</p>
-                <p className="meta">{readingMinutes([guide.excerpt, ...guide.paragraphs])} min read</p>
-              </article>
+              <StoryCard
+                key={guide.slug}
+                lead={Boolean(guide.advertised)}
+                href={`/blog/${guide.slug}`}
+                title={guide.title}
+                summary={guide.excerpt}
+                category={guide.category}
+                image={guide.image}
+                imageAlt={guide.imageAlt}
+                meta={`${readingMinutes([guide.excerpt, ...guide.paragraphs])} min read`}
+              />
             ))}
           </div>
         </div>

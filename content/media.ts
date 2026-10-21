@@ -45,3 +45,7 @@ export const mediaCredits = [
     licence: "Unsplash Licence",
   },
 ] as const;
+
+export function creditFor(file: string) {
+  return mediaCredits.find((item) => item.file === file);
+}

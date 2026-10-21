@@ -6,6 +6,10 @@ export type Guide = {
   advertised?: boolean;
   category: string;
   publishedAt?: string;
+  image?: string;
+  imageAlt?: string;
+  photoHref?: string;
+  photoLabel?: string;
   related?: { href: string; label: string }[];
 };
 
@@ -15,6 +19,10 @@ export const guides: Guide[] = [
     title: "How to brief me for a laptop",
     advertised: true,
     category: "Buying Guides",
+    image: "/images/laptops.jpg",
+    imageAlt: "A laptop open on a light wood desk",
+    photoHref: "/shop/laptops",
+    photoLabel: "Laptops",
     excerpt:
       "Send the work the laptop has to do. I check against that, then I confirm the price on WhatsApp before you pay.",
     paragraphs: [
@@ -31,6 +39,10 @@ export const guides: Guide[] = [
     slug: "before-the-cameras-go-up",
     title: "Before the cameras go up",
     category: "How-To Guides",
+    image: "/images/cctv.jpg",
+    imageAlt: "Rows of security cameras on a wall",
+    photoHref: "/shop/cctv",
+    photoLabel: "CCTV",
     excerpt:
       "A camera in the wrong place films the sky and misses the gate. Tell me the view, and who must open it.",
     paragraphs: [
@@ -50,6 +62,10 @@ export const guides: Guide[] = [
     slug: "small-office-in-the-right-order",
     title: "A small office, in the right order",
     category: "How-To Guides",
+    image: "/images/desktops.jpg",
+    imageAlt: "A desktop tower, monitor, and keyboard on a desk",
+    photoHref: "/work/office",
+    photoLabel: "Office setup",
     excerpt:
       "Do not start with a pile of laptops. Start with power, then the network, then the machines.",
     paragraphs: [

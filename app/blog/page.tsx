@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { ShareMenu } from "@/components/ShareMenu";
+import { StoryCard } from "@/components/StoryCard";
 import { guides } from "@/content/guides";
 import { notes } from "@/content/notes";
 import { readingMinutes } from "@/lib/reading";
@@ -11,6 +13,28 @@ export const metadata: Metadata = {
   description:
     "Buying guides, how-to notes, and product advice from EXE STORE. Read them before you send a brief.",
   alternates: { canonical: "/blog" },
+  openGraph: {
+    title: "Blog & Insights",
+    description:
+      "Buying guides, how-to notes, and product advice from EXE STORE. Read them before you send a brief.",
+    url: "/blog",
+    images: [
+      {
+        url: "/social/blog-index.jpg",
+        width: 1200,
+        height: 630,
+        alt: "EXE STORE Blog & Insights.",
+        type: "image/jpeg",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Blog & Insights",
+    description:
+      "Buying guides, how-to notes, and product advice from EXE STORE. Read them before you send a brief.",
+    images: ["/social/blog-index.jpg"],
+  },
 };
 
 const categories = ["Buying Guides", "How-To Guides", "Product Advice"];
@@ -21,6 +45,8 @@ type Article = {
   summary: string;
   category: string;
   minutes: number;
+  image?: string;
+  imageAlt?: string;
   lead?: boolean;
 };
 
@@ -40,6 +66,8 @@ export default async function BlogPage({
       summary: guide.excerpt,
       category: guide.category,
       minutes: readingMinutes([guide.excerpt, ...guide.paragraphs]),
+      image: guide.image,
+      imageAlt: guide.imageAlt,
       lead: guide.slug === lead.slug,
     })),
     ...notes.map((note) => ({
@@ -48,6 +76,8 @@ export default async function BlogPage({
       summary: note.paragraphs[0],
       category: note.category,
       minutes: readingMinutes(note.paragraphs),
+      image: note.image,
+      imageAlt: note.imageAlt,
     })),
   ];
   const filtered = articles.filter((article) => {
@@ -64,27 +94,35 @@ export default async function BlogPage({
           <h1>Read this before the brief.</h1>
           <p className="lede">
             Guides and notes for buying and setting up the work. Dates are shown
-            only when a record has one. These local articles do not.
+            only when a record has one.             These local articles do not.
           </p>
+          <div className="share-actions">
+            <ShareMenu path="/blog" name="EXE STORE Blog & Insights" social />
+          </div>
           {!query && !cat && lead ? (
             <div className="insight-top">
-              <article className="story story-lead">
-                <p className="index-label">{lead.category}</p>
-                <h2>
-                  <Link href={`/blog/${lead.slug}`}>{lead.title}</Link>
-                </h2>
-                <p>{lead.excerpt}</p>
-                <p className="meta">{readingMinutes([lead.excerpt, ...lead.paragraphs])} min read</p>
-              </article>
+              <StoryCard
+                heading="h2"
+                lead
+                href={`/blog/${lead.slug}`}
+                title={lead.title}
+                summary={lead.excerpt}
+                category={lead.category}
+                image={lead.image}
+                imageAlt={lead.imageAlt}
+                meta={`${readingMinutes([lead.excerpt, ...lead.paragraphs])} min read`}
+              />
               <div className="insight-side">
                 {support.map((guide) => (
-                  <article key={guide.slug} className="story">
-                    <p className="index-label">{guide.category}</p>
-                    <h3>
-                      <Link href={`/blog/${guide.slug}`}>{guide.title}</Link>
-                    </h3>
-                    <p>{guide.excerpt}</p>
-                  </article>
+                  <StoryCard
+                    key={guide.slug}
+                    href={`/blog/${guide.slug}`}
+                    title={guide.title}
+                    summary={guide.excerpt}
+                    category={guide.category}
+                    image={guide.image}
+                    imageAlt={guide.imageAlt}
+                  />
                 ))}
               </div>
             </div>
@@ -123,15 +161,17 @@ export default async function BlogPage({
             </div>
           ) : (
             <div className="article-grid">
-              {filtered.map((article) => (
-                <article key={article.href} className="story">
-                  <p className="index-label">{article.category}</p>
-                  <h3>
-                    <Link href={article.href}>{article.title}</Link>
-                  </h3>
-                  <p>{article.summary}</p>
-                  <p className="meta">{article.minutes} min read</p>
-                </article>
+              {(query || cat ? filtered : filtered.filter((article) => !article.lead && !support.some((guide) => article.href === `/blog/${guide.slug}`))).map((article) => (
+                <StoryCard
+                  key={article.href}
+                  href={article.href}
+                  title={article.title}
+                  summary={article.summary}
+                  category={article.category}
+                  image={article.image}
+                  imageAlt={article.imageAlt}
+                  meta={`${article.minutes} min read`}
+                />
               ))}
             </div>
           )}
