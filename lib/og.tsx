@@ -29,7 +29,7 @@ export function ogImage(kicker: string, title: string) {
           <div style={{ display: "flex", fontSize: 28, color: "#d6ff3a" }}>
             {kicker.toUpperCase()}
           </div>
-          <div style={{ display: "flex", fontSize: 28 }}>EXERIA</div>
+          <div style={{ display: "flex", fontSize: 28 }}>EXE STORE</div>
         </div>
         <div style={{ display: "flex", flexDirection: "column", width: "100%" }}>
           <div

@@ -8,7 +8,7 @@ export const revalidate = 60;
 export const metadata: Metadata = {
   title: "Trends",
   description:
-    "Short notes from EXERIA. One is advertised on the front. The rest sit in the index.",
+    "Short notes from EXE STORE. One is advertised on the front. The rest sit in the index.",
   alternates: { canonical: "/trends" },
 };
 

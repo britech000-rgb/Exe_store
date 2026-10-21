@@ -2,9 +2,11 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { RelatedLinks } from "@/components/RelatedLinks";
-import { ShareRow } from "@/components/ShareRow";
+import { ShareMenu } from "@/components/ShareMenu";
 import { guides } from "@/content/guides";
+import { categories } from "@/content/shop";
 import { getGuide, getGuides } from "@/lib/content";
+import { readingMinutes } from "@/lib/reading";
 
 type Props = { params: Promise<{ slug: string }> };
 
@@ -32,27 +34,48 @@ export default async function GuidePage({ params }: Props) {
   if (!guide) notFound();
   const more = guides.filter((item) => item.slug !== guide.slug);
 
+  const products = (guide.related ?? [])
+    .map((item) => categories.find((category) => item.href === `/shop/${category.slug}`))
+    .filter((item) => item !== undefined);
+  const published = guide.publishedAt
+    ? new Intl.DateTimeFormat("en", { dateStyle: "long" }).format(new Date(guide.publishedAt))
+    : null;
+
   return (
     <main id="content" className="sheet">
-      <div className="wrap">
-        <p className="kicker">
-          <Link href="/blog">Blog</Link>
-          {guide.advertised ? <span>Advertised</span> : null}
+      <div className="wrap article">
+        <p className="crumbs">
+          <Link href="/">Home</Link>
+          <span aria-hidden="true">/</span>
+          <Link href="/blog">Blog & Insights</Link>
+          <span aria-hidden="true">/</span>
+          {guide.category}
         </p>
-        <h1 style={{ fontSize: "clamp(2.4rem, 6vw, 4.6rem)", marginTop: 12, maxWidth: "16ch" }}>
-          {guide.title}
-        </h1>
-        <p className="lede" style={{ color: "var(--muted)" }}>{guide.excerpt}</p>
-        <ShareRow
-          message={`EXERIA, I read “${guide.title}”. Here is what I need: `}
-          path={`/blog/${guide.slug}`}
-          name={guide.title}
-        />
+        <p className="kicker">{guide.advertised ? "Featured" : guide.category}</p>
+        <h1>{guide.title}</h1>
+        <p className="lede">{guide.excerpt}</p>
+        <p className="meta">
+          {readingMinutes([guide.excerpt, ...guide.paragraphs])} min read
+          {published ? ` · ${published}` : " · No publication date on file"}
+        </p>
+        <ShareMenu path={`/blog/${guide.slug}`} name={guide.title} />
         <div className="prose">
           {guide.paragraphs.map((paragraph) => (
             <p key={paragraph}>{paragraph}</p>
           ))}
         </div>
+        {products.length ? (
+          <section>
+            <h2>From the catalogue</h2>
+            <p className="related">
+              {products.map((product) => (
+                <Link key={product.slug} href={`/shop/${product.slug}`}>
+                  {product.title}
+                </Link>
+              ))}
+            </p>
+          </section>
+        ) : null}
         <RelatedLinks links={guide.related} />
         <div style={{ marginTop: 40 }}>
           <h2>More guides</h2>

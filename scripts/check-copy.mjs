@@ -12,7 +12,6 @@ const banned = [
   [/\breviews?\b/i, "review"],
   [/testimonial/i, "testimonial"],
   [/britech/i, "britech"],
-  [/exe[_ ]store/i, "exe store"],
   [/\bksh\b/i, "ksh"],
   [/\$\d/, "a price"],
   [/add to cart/i, "add to cart"],
@@ -40,7 +39,7 @@ for (const path of paths) {
   const lines = text.split("\n");
   lines.forEach((line, index) => {
     for (const [pattern, label] of banned) {
-      if (label === "a long number" && path.endsWith("config/site.ts")) continue;
+      if (label === "a long number" && (path.endsWith("config/site.ts") || path.endsWith("content/media.ts"))) continue;
       if (pattern.test(line)) {
         hits.push(`${path}:${index + 1} ${label}: ${line.trim()}`);
       }

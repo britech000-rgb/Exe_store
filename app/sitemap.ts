@@ -2,6 +2,7 @@ import type { MetadataRoute } from "next";
 import { guides } from "@/content/guides";
 import { notes } from "@/content/notes";
 import { categories } from "@/content/shop";
+import { services } from "@/content/work";
 import { getSiteUrl } from "@/lib/site-url";
 
 export default function sitemap(): MetadataRoute.Sitemap {
@@ -10,6 +11,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     "",
     "/shop",
     "/work",
+    ...services.map((service) => `/work/${service.slug}`),
     "/proof",
     "/trends",
     "/blog",

@@ -1,6 +1,6 @@
-# EXERIA
+# EXE STORE
 
-Website for EXERIA. IT products and arranged work. The customer says what they need, it is checked, then the price is confirmed on WhatsApp before anyone pays.
+Website for EXE STORE. IT products and arranged work. The customer says what they need, it is checked, then the price is confirmed on WhatsApp before anyone pays.
 
 Instagram: https://instagram.com/briankuria_ke
 

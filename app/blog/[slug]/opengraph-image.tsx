@@ -1,7 +1,7 @@
 import { getGuideLocal } from "@/content/guides";
 import { ogContentType, ogImage, ogSize } from "@/lib/og";
 
-export const alt = "Guide. EXERIA.";
+export const alt = "Guide. EXE STORE.";
 export const size = ogSize;
 export const contentType = ogContentType;
 

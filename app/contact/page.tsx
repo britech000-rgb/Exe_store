@@ -6,7 +6,7 @@ import { digits, whatsappReady } from "@/lib/links";
 export const metadata: Metadata = {
   title: "Contact",
   description:
-    "Send EXERIA the brief on WhatsApp. The price is confirmed there before you pay.",
+    "Send EXE STORE the brief on WhatsApp. The price is confirmed there before you pay.",
   alternates: { canonical: "/contact" },
 };
 
@@ -27,7 +27,7 @@ export default function ContactPage() {
           <p className="kicker">Contact</p>
           <h1>Send the brief. The price comes back confirmed.</h1>
           <p className="lede">
-            EXERIA checks what you send, then confirms the price on WhatsApp
+            EXE STORE checks what you send, then confirms the price on WhatsApp
             before you pay. Nothing is bought before that confirmation.
           </p>
         </div>

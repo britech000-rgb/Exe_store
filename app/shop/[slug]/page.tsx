@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { RelatedLinks } from "@/components/RelatedLinks";
-import { Rule } from "@/components/Rule";
-import { ShareRow } from "@/components/ShareRow";
+import { AskLink } from "@/components/AskLink";
+import { ShareMenu } from "@/components/ShareMenu";
+import { ZoomImage } from "@/components/ZoomImage";
 import { categories, getCategory } from "@/content/shop";
 
 type Props = { params: Promise<{ slug: string }> };
@@ -22,6 +22,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     title: category.title,
     description: category.summary,
     alternates: { canonical: `/shop/${category.slug}` },
+    openGraph: {
+      title: category.title,
+      description: category.summary,
+      images: [{ url: category.image, alt: category.imageAlt }],
+    },
   };
 }
 
@@ -30,33 +35,42 @@ export default async function CategoryPage({ params }: Props) {
   const category = getCategory(slug);
   if (!category) notFound();
   const path = `/shop/${category.slug}`;
-  const others = categories.filter((item) => item.slug !== category.slug);
+  const others = categories.filter((item) => item.slug !== category.slug).slice(0, 3);
+
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Product",
+    name: category.title,
+    description: category.summary,
+    image: category.image,
+    category: category.title,
+  };
 
   return (
     <main id="content" className="sheet">
       <div className="wrap">
-        <p className="kicker">Shop</p>
-        <h1 style={{ marginTop: 10 }}>{category.title}</h1>
-        <p className="lede" style={{ color: "var(--muted)" }}>
-          {category.summary}
+        <p className="crumbs">
+          <Link href="/shop">Shop</Link>
+          <span aria-hidden="true">/</span>
+          {category.title}
         </p>
-        <figure className="preview">
-          <img
-            src={category.image}
-            alt={category.imageAlt}
-            width={1600}
-            height={1067}
-          />
-        </figure>
-        <p className="product-copy">{category.intro}</p>
-        <ShareRow
-          message={category.askMessage}
-          path={path}
-          name={category.title}
-        />
-        <div className="split">
+        <div className="product">
+          <ZoomImage src={category.image} alt={category.imageAlt} />
+          <div className="product-buy">
+            <p className="kicker">Shop</p>
+            <h1>{category.title}</h1>
+            <p className="lede">{category.summary}</p>
+            <p className="price-note">Quote. A published price is not on file.</p>
+            <p className="availability">Availability is confirmed when the brief is checked. Nothing is reserved on this page.</p>
+            <div className="share-actions">
+              <AskLink message={category.askMessage} />
+              <ShareMenu path={path} name={category.title} />
+            </div>
+          </div>
+        </div>
+        <div className="split product-detail">
           <section>
-            <h2>What I can sort</h2>
+            <h2>What this covers</h2>
             <ul className="list">
               {category.covers.map((item) => (
                 <li key={item}>{item}</li>
@@ -64,29 +78,40 @@ export default async function CategoryPage({ params }: Props) {
             </ul>
           </section>
           <section>
-            <h2>Tell me this</h2>
+            <h2>What to send</h2>
             <ul className="list">
               {category.tellMe.map((item) => (
                 <li key={item}>{item}</li>
               ))}
             </ul>
           </section>
+          <section>
+            <h2>How it is bought</h2>
+            <p className="product-copy">{category.intro}</p>
+            <p className="product-copy">
+              Delivery and collection are confirmed with the quote. A fee, a warranty window, and a returns window are not published.
+            </p>
+          </section>
+          {category.related ? (
+            <section>
+              <h2>Related</h2>
+              <p className="related">
+                <Link href={category.related.href}>{category.related.label}</Link>
+              </p>
+            </section>
+          ) : null}
         </div>
-        <RelatedLinks links={category.related ? [category.related] : undefined} />
-        <div style={{ marginTop: 36 }}>
-          <h2>The rule</h2>
-          <Rule />
-        </div>
-        <div style={{ marginTop: 36 }}>
+        <div className="section-head" style={{ marginTop: 48 }}>
           <h2>Other categories</h2>
-          <p className="related">
-            {others.map((item) => (
-              <Link key={item.slug} href={`/shop/${item.slug}`}>
-                {item.title}
-              </Link>
-            ))}
-          </p>
         </div>
+        <p className="related">
+          {others.map((item) => (
+            <Link key={item.slug} href={`/shop/${item.slug}`}>
+              {item.title}
+            </Link>
+          ))}
+        </p>
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       </div>
     </main>
   );

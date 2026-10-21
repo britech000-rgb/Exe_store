@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { CopyLink } from "@/components/CopyLink";
+import { ShareMenu } from "@/components/ShareMenu";
 import type { Category } from "@/content/shop";
 
 export function CategoryCard({
@@ -14,7 +14,7 @@ export function CategoryCard({
 
   return (
     <article className="card">
-      <Link href={path} className="card-media">
+      <Link href={path} className="card-media" aria-label={category.title}>
         <img src={category.image} alt={category.imageAlt} width={1600} height={1067} />
       </Link>
       <div className="card-body">
@@ -23,11 +23,12 @@ export function CategoryCard({
           <Link href={path}>{category.title}</Link>
         </h2>
         <p>{category.summary}</p>
+        <p className="price-note">Quote. Confirmed on WhatsApp before you pay.</p>
         <div className="card-actions">
-          <CopyLink path={path} name={category.title} />
-          <Link className="button button-line" href={path}>
-            Open
+          <Link className="button" href={path}>
+            View
           </Link>
+          <ShareMenu path={path} name={category.title} />
         </div>
       </div>
     </article>

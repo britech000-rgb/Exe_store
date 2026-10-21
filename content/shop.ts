@@ -32,7 +32,7 @@ export const categories: Category[] = [
       "The screen size you can live with, if you know it",
       "What the last one failed at",
     ],
-    askMessage: "EXERIA, I need a laptop. Here is what I will use it for: ",
+    askMessage: "EXE STORE, I need a laptop. Here is what I will use it for: ",
   },
   {
     slug: "desktops",
@@ -54,7 +54,7 @@ export const categories: Category[] = [
       "Whether a monitor is part of the brief",
       "What is already on that desk",
     ],
-    askMessage: "EXERIA, I need a desktop. Here is the work it has to do: ",
+    askMessage: "EXE STORE, I need a desktop. Here is the work it has to do: ",
   },
   {
     slug: "chargers",
@@ -76,7 +76,7 @@ export const categories: Category[] = [
       "What the current charger is doing wrong",
       "Whether you need one or a spare as well",
     ],
-    askMessage: "EXERIA, I need a charger. The model is: ",
+    askMessage: "EXE STORE, I need a charger. The model is: ",
   },
   {
     slug: "networking",
@@ -98,7 +98,7 @@ export const categories: Category[] = [
       "Whether the walls are thick",
       "What is already installed",
     ],
-    askMessage: "EXERIA, I need networking gear. The problem is: ",
+    askMessage: "EXE STORE, I need networking gear. The problem is: ",
     related: {
       href: "/work#wifi",
       label: "Wi-Fi and cabling work",
@@ -124,7 +124,7 @@ export const categories: Category[] = [
       "Day, night, or both",
       "Who must open the picture, and from where",
     ],
-    askMessage: "EXERIA, I need CCTV gear. I need to see: ",
+    askMessage: "EXE STORE, I need CCTV gear. I need to see: ",
     related: {
       href: "/work#cctv",
       label: "CCTV fitting is on the Work page",
@@ -150,7 +150,7 @@ export const categories: Category[] = [
       "What is plugged in today",
       "Whether this is one desk or a whole room",
     ],
-    askMessage: "EXERIA, I need power backup. What must stay on: ",
+    askMessage: "EXE STORE, I need power backup. What must stay on: ",
   },
   {
     slug: "phones",
@@ -172,7 +172,7 @@ export const categories: Category[] = [
       "The phone you have now, if you are replacing it",
       "Anything the current one fails at",
     ],
-    askMessage: "EXERIA, I need a phone. I will use it for: ",
+    askMessage: "EXE STORE, I need a phone. I will use it for: ",
   },
   {
     slug: "software",
@@ -195,7 +195,7 @@ export const categories: Category[] = [
       "What you are using today",
     ],
     askMessage:
-      "EXERIA, I need software. The job and the number of people: ",
+      "EXE STORE, I need software. The job and the number of people: ",
   },
 ];
 

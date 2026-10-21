@@ -43,7 +43,7 @@ export default async function NotePage({ params }: Props) {
           {note.title}
         </h1>
         <ShareRow
-          message={`EXERIA, I read “${note.title}”. Here is what I need: `}
+          message={`EXE STORE, I read “${note.title}”. Here is what I need: `}
           path={`/trends/${note.slug}`}
           name={note.title}
         />

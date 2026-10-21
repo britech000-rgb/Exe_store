@@ -1,5 +1,5 @@
 import { AskLink } from "@/components/AskLink";
-import { CopyLink, UrlLine } from "@/components/CopyLink";
+import { ShareMenu } from "@/components/ShareMenu";
 
 export function ShareRow({
   message,
@@ -14,9 +14,8 @@ export function ShareRow({
     <div className="share">
       <div className="share-actions">
         <AskLink message={message} />
-        <CopyLink path={path} name={name} />
+        <ShareMenu path={path} name={name} />
       </div>
-      <UrlLine path={path} />
     </div>
   );
 }

@@ -5,7 +5,7 @@ import { proof } from "@/content/proof";
 export const metadata: Metadata = {
   title: "Proof",
   description:
-    "Sites and systems EXERIA has shipped. Separate from the shop. Names, one sentence, and a link.",
+    "Sites and systems EXE STORE has shipped. Separate from the shop. Names, one sentence, and a link.",
   alternates: { canonical: "/proof" },
 };
 

@@ -22,6 +22,8 @@ export async function getNotes(): Promise<Note[]> {
     return data.map((row) => ({
       slug: String(row.slug),
       title: String(row.title),
+      category: "Product Advice",
+      publishedAt: row.published_at ? String(row.published_at) : undefined,
       paragraphs: paragraphs(String(row.body)),
     }));
   } catch {
@@ -47,6 +49,8 @@ export async function getGuides(): Promise<Guide[]> {
       slug: String(row.slug),
       title: String(row.title),
       excerpt: String(row.excerpt),
+      category: "Guide",
+      publishedAt: row.published_at ? String(row.published_at) : undefined,
       paragraphs: paragraphs(String(row.body)),
     }));
   } catch {

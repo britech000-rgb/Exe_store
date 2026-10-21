@@ -1,58 +1,51 @@
 import type { Metadata } from "next";
-import { RelatedLinks } from "@/components/RelatedLinks";
-import { ShareRow } from "@/components/ShareRow";
+import Link from "next/link";
+import { getServicePage } from "@/content/service-pages";
 import { services } from "@/content/work";
 
 export const metadata: Metadata = {
-  title: "Work",
+  title: "Services",
   description:
-    "Websites, Wi-Fi and cabling, CCTV, repairs, office setup, and business systems. I check the job, then I confirm the price on WhatsApp before you pay.",
+    "Websites, Wi-Fi and cabling, CCTV, repairs, office setup, and business systems. The price is confirmed on WhatsApp before you pay.",
   alternates: { canonical: "/work" },
 };
 
 export default function WorkPage() {
   return (
     <main id="content">
-      <section className="sheet sheet-black" style={{ paddingBottom: 20 }}>
+      <section className="sheet page-intro">
         <div className="wrap">
-          <p className="kicker">Work</p>
-          <h1 style={{ marginTop: 10, maxWidth: "14ch" }}>Work, arranged.</h1>
+          <p className="kicker">Services</p>
+          <h1>Work, arranged.</h1>
           <p className="lede">
-            You say what you need. I check the job. I confirm the price on
-            WhatsApp before you pay. Gear is in the shop. This page is the work.
+            You say what you need. The job is checked. The price is confirmed
+            on WhatsApp before you pay. Gear is in the shop.
           </p>
-          <nav className="jump" aria-label="Work">
-            {services.map((service) => (
-              <a key={service.slug} href={`#${service.slug}`}>
-                {service.title}
-              </a>
-            ))}
-          </nav>
-        </div>
-      </section>
-      <section className="sheet sheet-black" style={{ paddingTop: 0 }}>
-        <div className="wrap">
-          {services.map((service) => (
-            <article key={service.slug} id={service.slug} className="service">
-              <h2>{service.title}</h2>
-              <p className="lede" style={{ marginTop: 8 }}>{service.summary}</p>
-              <p style={{ marginTop: 14, maxWidth: "42rem" }}>{service.detail}</p>
-              <h3 style={{ marginTop: 22, fontSize: "1.2rem" }}>Tell me this</h3>
-              <ul className="list">
-                {service.tellMe.map((item) => (
-                  <li key={item}>{item}</li>
-                ))}
-              </ul>
-              <ShareRow
-                message={service.askMessage}
-                path={`/work#${service.slug}`}
-                name={service.title}
-              />
-              <RelatedLinks
-                links={service.related ? [service.related] : undefined}
-              />
-            </article>
-          ))}
+          <div className="grid cards">
+            {services.map((service) => {
+              const page = getServicePage(service.slug);
+              return (
+                <article key={service.slug} id={service.slug} className="card">
+                  {page ? (
+                    <Link href={`/work/${service.slug}`} className="card-media" aria-label={service.title}>
+                      <img src={page.image} alt={page.imageAlt} width={1600} height={1067} />
+                    </Link>
+                  ) : null}
+                  <div className="card-body">
+                    <h2>
+                      <Link href={`/work/${service.slug}`}>{service.title}</Link>
+                    </h2>
+                    <p>{service.summary}</p>
+                    <div className="card-actions">
+                      <Link className="button" href={`/work/${service.slug}`}>
+                        Explore service
+                      </Link>
+                    </div>
+                  </div>
+                </article>
+              );
+            })}
+          </div>
         </div>
       </section>
     </main>

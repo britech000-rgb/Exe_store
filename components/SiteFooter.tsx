@@ -9,14 +9,6 @@ export function SiteFooter() {
     <footer className="site-footer">
       <div className="wrap footer-grid">
         <div>
-          <p className="wordmark footer-mark">
-            <span className="mark" aria-hidden="true">
-              <i />
-              <i />
-              <i />
-            </span>
-            {site.name}
-          </p>
           <p className="footer-name">{site.name}</p>
           <p>
             IT products and arranged work. The price is confirmed on WhatsApp
@@ -25,10 +17,10 @@ export function SiteFooter() {
         </div>
         <div className="footer-links">
           <Link href="/shop">Shop</Link>
-          <Link href="/work">Work</Link>
+          <Link href="/work">Services</Link>
+          <Link href="/blog">Blog & Insights</Link>
+          <Link href="/trends">Notes</Link>
           <Link href="/proof">Proof</Link>
-          <Link href="/trends">Trends</Link>
-          <Link href="/blog">Blog</Link>
           <Link href="/contact">Contact</Link>
         </div>
         <div className="footer-links">
@@ -40,6 +32,7 @@ export function SiteFooter() {
           ) : (
             <p>WhatsApp opens here once the number is in.</p>
           )}
+          <p>Delivery and collection are confirmed with the quote. A coverage list is not published.</p>
           <AskLink message={site.defaultAskMessage} />
         </div>
       </div>
