@@ -12,6 +12,7 @@ const links = [
   { href: "/proof", label: "Proof" },
   { href: "/trends", label: "Trends" },
   { href: "/blog", label: "Blog" },
+  { href: "/contact", label: "Contact" },
 ];
 
 export function SiteHeader() {
@@ -26,7 +27,11 @@ export function SiteHeader() {
     <header className="site-header">
       <div className="wrap header-bar">
         <Link href="/" className="wordmark">
-          <span className="mark" aria-hidden="true" />
+          <span className="mark" aria-hidden="true">
+            <i />
+            <i />
+            <i />
+          </span>
           {site.name}
         </Link>
         <button

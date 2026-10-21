@@ -1,5 +1,5 @@
 /**
- * Brian Kuria site config.
+ * EXERIA site config.
  *
  * WHATSAPP
  * When the number is ready, set whatsappNumber to digits only,
@@ -9,11 +9,11 @@
  * Leave it as an empty string and every Ask button opens Instagram.
  */
 export const site = {
-  name: "Brian Kuria",
+  name: "EXERIA",
   description:
-    "I supply IT products and I arrange the work. Tell me what you need. I check it, then I confirm the price on WhatsApp before you pay.",
+    "EXERIA supplies IT products and arranges the work. Send what you need. It is checked, then the price is confirmed on WhatsApp before you pay.",
   instagram: "https://instagram.com/briankuria_ke",
   instagramHandle: "@briankuria_ke",
   whatsappNumber: "254700030314",
-  defaultAskMessage: "Brian, here is what I need: ",
+  defaultAskMessage: "EXERIA, here is what I need: ",
 } as const;

@@ -1,61 +1,65 @@
 import Link from "next/link";
+import { Advertised } from "@/components/Advertised";
 import { AskLink } from "@/components/AskLink";
 import { CategoryCard } from "@/components/CategoryCard";
+import { ProofList } from "@/components/ProofList";
 import { Rule } from "@/components/Rule";
 import { site } from "@/config/site";
 import { proof } from "@/content/proof";
 import { categories } from "@/content/shop";
 import { services } from "@/content/work";
-import { ProofList } from "@/components/ProofList";
 import { getGuides, getNotes } from "@/lib/content";
 
 export default async function HomePage() {
   const notes = await getNotes();
   const guides = await getGuides();
-  const leadNotes = notes.slice(0, 2);
-  const leadGuide = guides[0];
+  const leadNote = notes.find((note) => note.advertised) ?? notes[0];
+  const leadGuide = guides.find((guide) => guide.advertised) ?? guides[0];
 
   return (
     <main id="content">
       <section className="hero">
-        <div className="wrap">
-          <p className="kicker">{site.name}</p>
-          <h1>
-            Say what you need.
-            <span>I check it.</span>
-            <em>Then I confirm the price.</em>
-          </h1>
-          <p className="lede">
-            I supply the IT products and I arrange the work. Laptops through to
-            CCTV. Websites through to office setup. You pay after I have
-            confirmed the price on WhatsApp. Not before.
-          </p>
-          <div className="share-actions" style={{ marginTop: 24 }}>
-            <AskLink message={site.defaultAskMessage} />
-            <Link className="button button-line" href="/shop">
-              Open the shop
-            </Link>
+        <div className="wrap mast">
+          <div>
+            <p className="kicker">{site.name}</p>
+            <h1>
+              The brief comes in.
+              <span>The price goes out confirmed.</span>
+            </h1>
+            <p className="lede">
+              EXERIA supplies the IT products and arranges the work. Laptops
+              through to CCTV. Websites through to office setup. You pay after
+              the price is confirmed on WhatsApp. Not before.
+            </p>
+            <div className="share-actions" style={{ marginTop: 28 }}>
+              <AskLink message={site.defaultAskMessage} />
+              <Link className="button button-line" href="/shop">
+                Open the shop
+              </Link>
+            </div>
           </div>
+          <aside className="mast-panel" aria-label="How it works">
+            <p className="index-label">The rule</p>
+            <Rule />
+          </aside>
         </div>
       </section>
-      <section className="band">
-        <div className="wrap">
-          <Rule />
-        </div>
-      </section>
-      <section className="sheet" style={{ paddingTop: 12 }}>
+      <section className="sheet">
         <div className="wrap">
           <div className="section-head">
-            <h2>Shop</h2>
-            <Link href="/shop">All categories</Link>
+            <div>
+              <p className="index-label">Supply</p>
+              <h2>Shop</h2>
+            </div>
+            <Link href="/shop">All eight categories</Link>
           </div>
-          <p className="muted" style={{ color: "var(--muted)", marginBottom: 18 }}>
-            Each category has its own link. Copy it, put it on a WhatsApp
-            status, and a tap opens that category.
+          <p className="muted standfirst">
+            Each category has a photograph, a description, and its own link.
+            Copy it onto a WhatsApp status. A tap opens that category.
           </p>
           <div className="grid cards">
-            {categories.slice(0, 4).map((category) => (
-              <CategoryCard key={category.slug} category={category} />
+            {categories.map((category, index) => (
+              <CategoryCard key={category.slug} category={category} index={index} />
             ))}
           </div>
         </div>
@@ -63,17 +67,54 @@ export default async function HomePage() {
       <section className="sheet sheet-black">
         <div className="wrap">
           <div className="section-head">
+            <div>
+              <p className="index-label">On the front</p>
+              <h2>Advertised</h2>
+            </div>
+          </div>
+          <p className="muted standfirst standfirst-light">
+            One note and one guide sit in front of the archive. The rest of
+            the desk is behind them.
+          </p>
+          <div className="advertised-grid">
+            {leadNote ? (
+              <Advertised
+                eyebrow="Trends"
+                title={leadNote.title}
+                dek={leadNote.paragraphs[0]}
+                href={`/trends/${leadNote.slug}`}
+                index="01"
+              />
+            ) : null}
+            {leadGuide ? (
+              <Advertised
+                eyebrow="Blog"
+                title={leadGuide.title}
+                dek={leadGuide.excerpt}
+                href={`/blog/${leadGuide.slug}`}
+                index="01"
+              />
+            ) : null}
+          </div>
+        </div>
+      </section>
+      <section className="sheet sheet-black" style={{ paddingTop: 0 }}>
+        <div className="wrap">
+          <div className="section-head">
             <h2>Work</h2>
-            <Link href="/work">The work I do</Link>
+            <Link href="/work">The full list</Link>
           </div>
-          <div className="grid">
-            {services.map((service) => (
-              <Link key={service.slug} href={`/work#${service.slug}`} className="service" style={{ paddingTop: 18, paddingBottom: 0 }}>
-                <h3 style={{ fontSize: "1.45rem", letterSpacing: "-0.04em" }}>{service.title}</h3>
-                <p className="muted">{service.summary}</p>
-              </Link>
+          <ol className="work-index">
+            {services.map((service, index) => (
+              <li key={service.slug}>
+                <Link href={`/work#${service.slug}`}>
+                  <span>0{index + 1}</span>
+                  <strong>{service.title}</strong>
+                  <em>{service.summary}</em>
+                </Link>
+              </li>
             ))}
-          </div>
+          </ol>
         </div>
       </section>
       <section className="sheet">
@@ -82,42 +123,10 @@ export default async function HomePage() {
             <h2>Proof</h2>
             <Link href="/proof">Open the list</Link>
           </div>
-          <p className="muted" style={{ color: "var(--muted)", marginBottom: 8 }}>
-            Sites and systems I have shipped. Kept off the shop.
+          <p className="muted standfirst">
+            Sites and systems that have gone live. Kept off the shop.
           </p>
           <ProofList items={proof} />
-        </div>
-      </section>
-      <section className="sheet" style={{ paddingTop: 0 }}>
-        <div className="wrap home-notes">
-          <div>
-            <div className="section-head">
-              <h2>Trends</h2>
-              <Link href="/trends">All notes</Link>
-            </div>
-            {leadNotes.map((note) => (
-              <article key={note.slug} className="note">
-                <h3>
-                  <Link href={`/trends/${note.slug}`}>{note.title}</Link>
-                </h3>
-                <p>{note.paragraphs[0]}</p>
-              </article>
-            ))}
-          </div>
-          {leadGuide ? (
-            <div>
-              <div className="section-head">
-                <h2>Blog</h2>
-                <Link href="/blog">All guides</Link>
-              </div>
-              <article className="guide-item">
-                <h3>
-                  <Link href={`/blog/${leadGuide.slug}`}>{leadGuide.title}</Link>
-                </h3>
-                <p>{leadGuide.excerpt}</p>
-              </article>
-            </div>
-          ) : null}
         </div>
       </section>
     </main>

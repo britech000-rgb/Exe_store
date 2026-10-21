@@ -15,9 +15,9 @@ export const categories: Category[] = [
   {
     slug: "laptops",
     title: "Laptops",
-    image: "/preview/laptops.svg",
-    imageAlt: "Preview graphic for the laptops category",
-    summary: "For work, school, and the days you carry it.",
+    image: "/images/laptops.jpg",
+    imageAlt: "A laptop open on a light wood desk",
+    summary: "A machine you carry between rooms, classes, and calls. The brief decides it.",
     intro:
       "Tell me what the laptop has to survive. Classes, office, calls, or a bag on your shoulder all day. I check against that work, then I confirm the price on WhatsApp before you pay.",
     covers: [
@@ -32,14 +32,14 @@ export const categories: Category[] = [
       "The screen size you can live with, if you know it",
       "What the last one failed at",
     ],
-    askMessage: "Brian, I need a laptop. Here is what I will use it for: ",
+    askMessage: "EXERIA, I need a laptop. Here is what I will use it for: ",
   },
   {
     slug: "desktops",
     title: "Desktops",
-    image: "/preview/desktops.svg",
-    imageAlt: "Preview graphic for the desktops category",
-    summary: "A machine that stays put and does the job.",
+    image: "/images/desktops.jpg",
+    imageAlt: "A desktop tower, monitor, and keyboard on a desk",
+    summary: "A desk that stays switched on. The tower stays. The work stays with it.",
     intro:
       "A desk, a counter, a setup that does not travel. Tell me the work it has to do in that spot. I check the machine against the room, then I confirm the price on WhatsApp before you pay.",
     covers: [
@@ -54,14 +54,14 @@ export const categories: Category[] = [
       "Whether a monitor is part of the brief",
       "What is already on that desk",
     ],
-    askMessage: "Brian, I need a desktop. Here is the work it has to do: ",
+    askMessage: "EXERIA, I need a desktop. Here is the work it has to do: ",
   },
   {
     slug: "chargers",
     title: "Chargers",
-    image: "/preview/chargers.svg",
-    imageAlt: "Preview graphic for the chargers category",
-    summary: "The right power for that exact model.",
+    image: "/images/chargers.jpg",
+    imageAlt: "A laptop charger and its cable on a white surface",
+    summary: "The brick has to match the model. A plug that fits is not the right charger.",
     intro:
       "If it slides in, that still does not mean it is the right charger. Send the laptop or phone model. I check the match, then I confirm the price on WhatsApp before you pay.",
     covers: [
@@ -76,14 +76,14 @@ export const categories: Category[] = [
       "What the current charger is doing wrong",
       "Whether you need one or a spare as well",
     ],
-    askMessage: "Brian, I need a charger. The model is: ",
+    askMessage: "EXERIA, I need a charger. The model is: ",
   },
   {
     slug: "networking",
     title: "Networking",
-    image: "/preview/networking.svg",
-    imageAlt: "Preview graphic for the networking category",
-    summary: "Routers, switches, access points, and cable.",
+    image: "/images/networking.jpg",
+    imageAlt: "Network cables plugged into a patch panel",
+    summary: "Routers, switches, access points, and the cable the back room has been missing.",
     intro:
       "The front room can be fine while the back room is dead. Tell me which room fails and what you are trying to connect. I check the gear, then I confirm the price on WhatsApp before you pay.",
     covers: [
@@ -98,7 +98,7 @@ export const categories: Category[] = [
       "Whether the walls are thick",
       "What is already installed",
     ],
-    askMessage: "Brian, I need networking gear. The problem is: ",
+    askMessage: "EXERIA, I need networking gear. The problem is: ",
     related: {
       href: "/work#wifi",
       label: "Wi-Fi and cabling work",
@@ -107,9 +107,9 @@ export const categories: Category[] = [
   {
     slug: "cctv",
     title: "CCTV",
-    image: "/preview/cctv.svg",
-    imageAlt: "Preview graphic for the CCTV category",
-    summary: "Cameras and recorders. Fitting them is under Work.",
+    image: "/images/cctv.jpg",
+    imageAlt: "Rows of security cameras on a wall",
+    summary: "Cameras and recorders for a gate, a counter, or a passage. Fitting them sits under Work.",
     intro:
       "This page is the gear: cameras and recorders. Tell me what you need to see. I check the kit against that view, then I confirm the price on WhatsApp before you pay.",
     covers: [
@@ -124,7 +124,7 @@ export const categories: Category[] = [
       "Day, night, or both",
       "Who must open the picture, and from where",
     ],
-    askMessage: "Brian, I need CCTV gear. I need to see: ",
+    askMessage: "EXERIA, I need CCTV gear. I need to see: ",
     related: {
       href: "/work#cctv",
       label: "CCTV fitting is on the Work page",
@@ -133,9 +133,9 @@ export const categories: Category[] = [
   {
     slug: "power",
     title: "Power",
-    image: "/preview/power.svg",
-    imageAlt: "Preview graphic for the power category",
-    summary: "Backup for the kit that cannot just die.",
+    image: "/images/power.jpg",
+    imageAlt: "A six-socket power strip with its cord",
+    summary: "Backup and clean power for the router, the recorder, and the desk that cannot go dark.",
     intro:
       "Tell me what must stay on when the lights blink. The router, the recorder, the one desk that cannot go dark. I check the backup against that list, then I confirm the price on WhatsApp before you pay.",
     covers: [
@@ -150,14 +150,14 @@ export const categories: Category[] = [
       "What is plugged in today",
       "Whether this is one desk or a whole room",
     ],
-    askMessage: "Brian, I need power backup. What must stay on: ",
+    askMessage: "EXERIA, I need power backup. What must stay on: ",
   },
   {
     slug: "phones",
     title: "Phones",
-    image: "/preview/phones.svg",
-    imageAlt: "Preview graphic for the phones category",
-    summary: "For calls, WhatsApp, and the work on the screen.",
+    image: "/images/phones.jpg",
+    imageAlt: "A smartphone lying on a white desk beside a keyboard",
+    summary: "Calls, WhatsApp, and a day away from a socket. The work on the screen decides the phone.",
     intro:
       "Tell me the work the phone has to do. Calls, WhatsApp, photos, a long day away from a socket. I check against that, then I confirm the price on WhatsApp before you pay.",
     covers: [
@@ -172,14 +172,14 @@ export const categories: Category[] = [
       "The phone you have now, if you are replacing it",
       "Anything the current one fails at",
     ],
-    askMessage: "Brian, I need a phone. I will use it for: ",
+    askMessage: "EXERIA, I need a phone. I will use it for: ",
   },
   {
     slug: "software",
     title: "Software",
-    image: "/preview/software.svg",
-    imageAlt: "Preview graphic for the software category",
-    summary: "Genuine licences for the work the machines do.",
+    image: "/images/software.jpg",
+    imageAlt: "A laptop screen filled with software code",
+    summary: "A genuine licence for the job, counted for the people who actually use it.",
     intro:
       "Tell me what the computers must do, and how many people use them. I check a genuine licence against that, then I confirm the price on WhatsApp before you pay.",
     covers: [
@@ -195,7 +195,7 @@ export const categories: Category[] = [
       "What you are using today",
     ],
     askMessage:
-      "Brian, I need software. The job and the number of people: ",
+      "EXERIA, I need software. The job and the number of people: ",
   },
 ];
 

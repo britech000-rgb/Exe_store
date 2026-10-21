@@ -3,6 +3,7 @@ export type Guide = {
   title: string;
   excerpt: string;
   paragraphs: string[];
+  advertised?: boolean;
   related?: { href: string; label: string }[];
 };
 
@@ -10,6 +11,7 @@ export const guides: Guide[] = [
   {
     slug: "brief-me-for-a-laptop",
     title: "How to brief me for a laptop",
+    advertised: true,
     excerpt:
       "Send the work the laptop has to do. I check against that, then I confirm the price on WhatsApp before you pay.",
     paragraphs: [

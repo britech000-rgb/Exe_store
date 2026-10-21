@@ -1,6 +1,6 @@
 "use client";
 
-import { askHref, askLabel } from "@/lib/links";
+import { askHref, askLabel, whatsappReady } from "@/lib/links";
 
 type AskLinkProps = {
   message: string;
@@ -22,7 +22,7 @@ export function AskLink({
       rel="noopener noreferrer"
       aria-label={label}
     >
-      {compact ? "Ask" : label}
+      {compact ? (whatsappReady() ? "WhatsApp" : "Instagram") : label}
     </a>
   );
 }

@@ -1,6 +1,6 @@
 import { ogContentType, ogImage, ogSize } from "@/lib/og";
 
-export const alt = "Blog. Brian Kuria.";
+export const alt = "Blog. EXERIA.";
 export const size = ogSize;
 export const contentType = ogContentType;
 

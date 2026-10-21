@@ -5,30 +5,33 @@ import { categories } from "@/content/shop";
 export const metadata: Metadata = {
   title: "Shop",
   description:
-    "Laptops, desktops, chargers, networking, CCTV, power, phones, and software. Copy a category link for a WhatsApp status.",
+    "Laptops, desktops, chargers, networking, CCTV, power, phones, and software. Each category has a photograph, a description, and its own link.",
   alternates: { canonical: "/shop" },
 };
 
 export default function ShopPage() {
   return (
-    <main id="content" className="sheet">
-      <div className="wrap">
-        <p className="kicker">Shop</p>
-        <h1 style={{ fontSize: "clamp(3rem, 8vw, 5.4rem)", marginTop: 10 }}>
-          Pick the category.
-        </h1>
-        <p className="lede" style={{ color: "var(--muted)" }}>
-          Eight places to start. Each one has its own link and a preview. Copy
-          the link, drop it on a WhatsApp status, and a tap opens that
-          category. No prices on this page. I confirm the price on WhatsApp
-          before you pay.
-        </p>
-        <div className="grid cards" style={{ marginTop: 28 }}>
-          {categories.map((category) => (
-            <CategoryCard key={category.slug} category={category} />
-          ))}
+    <main id="content">
+      <section className="sheet sheet-black page-intro">
+        <div className="wrap">
+          <p className="kicker">Shop</p>
+          <h1>Eight categories. A photograph and a description for each.</h1>
+          <p className="lede">
+            Copy a category link onto a WhatsApp status. A tap opens that
+            category. No prices on this page. The price is confirmed on
+            WhatsApp before you pay.
+          </p>
         </div>
-      </div>
+      </section>
+      <section className="sheet">
+        <div className="wrap">
+          <div className="grid cards">
+            {categories.map((category, index) => (
+              <CategoryCard key={category.slug} category={category} index={index} />
+            ))}
+          </div>
+        </div>
+      </section>
     </main>
   );
 }

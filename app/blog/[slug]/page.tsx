@@ -37,13 +37,14 @@ export default async function GuidePage({ params }: Props) {
       <div className="wrap">
         <p className="kicker">
           <Link href="/blog">Blog</Link>
+          {guide.advertised ? <span>Advertised</span> : null}
         </p>
         <h1 style={{ fontSize: "clamp(2.4rem, 6vw, 4.6rem)", marginTop: 12, maxWidth: "16ch" }}>
           {guide.title}
         </h1>
         <p className="lede" style={{ color: "var(--muted)" }}>{guide.excerpt}</p>
         <ShareRow
-          message={`Brian, I read “${guide.title}”. Here is what I need: `}
+          message={`EXERIA, I read “${guide.title}”. Here is what I need: `}
           path={`/blog/${guide.slug}`}
           name={guide.title}
         />

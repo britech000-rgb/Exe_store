@@ -9,11 +9,27 @@ export function SiteFooter() {
     <footer className="site-footer">
       <div className="wrap footer-grid">
         <div>
+          <p className="wordmark footer-mark">
+            <span className="mark" aria-hidden="true">
+              <i />
+              <i />
+              <i />
+            </span>
+            {site.name}
+          </p>
           <p className="footer-name">{site.name}</p>
           <p>
-            I supply IT products and I arrange the work. The price is confirmed
-            on WhatsApp before you pay.
+            IT products and arranged work. The price is confirmed on WhatsApp
+            before you pay.
           </p>
+        </div>
+        <div className="footer-links">
+          <Link href="/shop">Shop</Link>
+          <Link href="/work">Work</Link>
+          <Link href="/proof">Proof</Link>
+          <Link href="/trends">Trends</Link>
+          <Link href="/blog">Blog</Link>
+          <Link href="/contact">Contact</Link>
         </div>
         <div className="footer-links">
           <a href={site.instagram} target="_blank" rel="noopener noreferrer me">
@@ -22,11 +38,9 @@ export function SiteFooter() {
           {ready ? (
             <p className="footer-number">+{digits(site.whatsappNumber)}</p>
           ) : (
-            <p>WhatsApp opens here once the number is in. Until then, ask on Instagram.</p>
+            <p>WhatsApp opens here once the number is in.</p>
           )}
           <AskLink message={site.defaultAskMessage} />
-          <Link href="/shop">Shop</Link>
-          <Link href="/proof">Proof</Link>
         </div>
       </div>
     </footer>

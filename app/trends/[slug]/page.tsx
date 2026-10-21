@@ -37,12 +37,13 @@ export default async function NotePage({ params }: Props) {
       <div className="wrap">
         <p className="kicker">
           <Link href="/trends">Trends</Link>
+          {note.advertised ? <span>Advertised</span> : null}
         </p>
         <h1 style={{ fontSize: "clamp(2.4rem, 6vw, 4.4rem)", marginTop: 12 }}>
           {note.title}
         </h1>
         <ShareRow
-          message={`Brian, I read “${note.title}”. Here is what I need: `}
+          message={`EXERIA, I read “${note.title}”. Here is what I need: `}
           path={`/trends/${note.slug}`}
           name={note.title}
         />

@@ -21,7 +21,7 @@ export const services: Service[] = [
       "Pages you know you need",
       "Anything that must be on the first screen",
     ],
-    askMessage: "Brian, I need a website. Here is what it must say: ",
+    askMessage: "EXERIA, I need a website. Here is what it must say: ",
   },
   {
     slug: "wifi",
@@ -35,7 +35,7 @@ export const services: Service[] = [
       "Where the router sits today",
       "Thick walls, upstairs rooms, or a long corridor",
     ],
-    askMessage: "Brian, I need Wi-Fi and cabling. The place is: ",
+    askMessage: "EXERIA, I need Wi-Fi and cabling. The place is: ",
     related: {
       href: "/shop/networking",
       label: "Networking gear is in the shop",
@@ -53,7 +53,7 @@ export const services: Service[] = [
       "Who opens the picture, and from where",
       "Where power and the recorder can sit",
     ],
-    askMessage: "Brian, I need CCTV fitted. I need to see: ",
+    askMessage: "EXERIA, I need CCTV fitted. I need to see: ",
     related: {
       href: "/shop/cctv",
       label: "Cameras and recorders are in the shop",
@@ -71,7 +71,7 @@ export const services: Service[] = [
       "The model, if you can read it",
       "When it started",
     ],
-    askMessage: "Brian, I need a repair. The symptom is: ",
+    askMessage: "EXERIA, I need a repair. The symptom is: ",
   },
   {
     slug: "office",
@@ -85,7 +85,7 @@ export const services: Service[] = [
       "What is already in the room",
       "What must stay on when the lights blink",
     ],
-    askMessage: "Brian, I need an office set up. The room is: ",
+    askMessage: "EXERIA, I need an office set up. The room is: ",
     related: {
       href: "/blog/small-office-in-the-right-order",
       label: "Read the order I set an office up in",
@@ -103,7 +103,7 @@ export const services: Service[] = [
       "What you are doing today, even if it is a notebook",
       "What a good Tuesday should look like",
     ],
-    askMessage: "Brian, I need a business system. What keeps getting lost: ",
+    askMessage: "EXERIA, I need a business system. What keeps getting lost: ",
   },
 ];
 

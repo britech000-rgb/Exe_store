@@ -2,6 +2,7 @@ export type Note = {
   slug: string;
   title: string;
   paragraphs: string[];
+  advertised?: boolean;
   related?: { href: string; label: string };
 };
 
@@ -46,6 +47,7 @@ export const notes: Note[] = [
   {
     slug: "say-the-work",
     title: "Say the work, not the slogan",
+    advertised: true,
     paragraphs: [
       "“A fast laptop” is a slogan. “I teach all day and I carry it between two rooms” is a brief.",
       "Send me the work. I check what fits that work, and I confirm the price on WhatsApp before you pay.",

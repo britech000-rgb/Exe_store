@@ -38,21 +38,22 @@ export default async function CategoryPage({ params }: Props) {
         <p className="kicker">Shop</p>
         <h1 style={{ marginTop: 10 }}>{category.title}</h1>
         <p className="lede" style={{ color: "var(--muted)" }}>
-          {category.intro}
+          {category.summary}
         </p>
+        <figure className="preview">
+          <img
+            src={category.image}
+            alt={category.imageAlt}
+            width={1600}
+            height={1067}
+          />
+        </figure>
+        <p className="product-copy">{category.intro}</p>
         <ShareRow
           message={category.askMessage}
           path={path}
           name={category.title}
         />
-        <figure className="preview">
-          <img
-            src={category.image}
-            alt={category.imageAlt}
-            width={1200}
-            height={750}
-          />
-        </figure>
         <div className="split">
           <section>
             <h2>What I can sort</h2>

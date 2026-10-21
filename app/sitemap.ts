@@ -13,6 +13,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     "/proof",
     "/trends",
     "/blog",
+    "/contact",
     ...categories.map((category) => `/shop/${category.slug}`),
     ...notes.map((note) => `/trends/${note.slug}`),
     ...guides.map((guide) => `/blog/${guide.slug}`),

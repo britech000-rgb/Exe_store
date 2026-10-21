@@ -16,7 +16,7 @@ export default function WorkPage() {
       <section className="sheet sheet-black" style={{ paddingBottom: 20 }}>
         <div className="wrap">
           <p className="kicker">Work</p>
-          <h1 style={{ marginTop: 10, maxWidth: "12ch" }}>The work I do.</h1>
+          <h1 style={{ marginTop: 10, maxWidth: "14ch" }}>Work, arranged.</h1>
           <p className="lede">
             You say what you need. I check the job. I confirm the price on
             WhatsApp before you pay. Gear is in the shop. This page is the work.

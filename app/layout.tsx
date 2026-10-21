@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Bricolage_Grotesque, IBM_Plex_Mono } from "next/font/google";
+import { IBM_Plex_Mono, Outfit, Syne } from "next/font/google";
 import { SiteFooter } from "@/components/SiteFooter";
 import { SiteHeader } from "@/components/SiteHeader";
 import { site } from "@/config/site";
@@ -7,10 +7,16 @@ import { digits, whatsappReady } from "@/lib/links";
 import { getSiteUrl } from "@/lib/site-url";
 import "./globals.css";
 
-const sans = Bricolage_Grotesque({
+const sans = Outfit({
   subsets: ["latin"],
-  weight: ["500", "700", "800"],
+  weight: ["400", "500", "600", "700"],
   variable: "--font-sans",
+});
+
+const display = Syne({
+  subsets: ["latin"],
+  weight: ["600", "700", "800"],
+  variable: "--font-display",
 });
 
 const mono = IBM_Plex_Mono({
@@ -52,7 +58,7 @@ export default function RootLayout({
   const sameAs = [site.instagram];
   const jsonLd: Record<string, unknown> = {
     "@context": "https://schema.org",
-    "@type": "Person",
+    "@type": "Organization",
     name: site.name,
     url: getSiteUrl(),
     description: site.description,
@@ -61,7 +67,7 @@ export default function RootLayout({
   if (whatsappReady()) jsonLd.telephone = `+${digits(site.whatsappNumber)}`;
 
   return (
-    <html lang="en" className={`${sans.variable} ${mono.variable}`}>
+    <html lang="en" className={`${sans.variable} ${display.variable} ${mono.variable}`}>
       <body>
         <a className="skip" href="#content">
           Skip to content

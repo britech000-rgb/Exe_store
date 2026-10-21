@@ -1,6 +1,6 @@
-# Brian Kuria
+# EXERIA
 
-Website for Brian Kuria. He supplies IT products and arranges IT work. The customer says what they need, he checks, then he confirms the price on WhatsApp before anyone pays.
+Website for EXERIA. IT products and arranged work. The customer says what they need, it is checked, then the price is confirmed on WhatsApp before anyone pays.
 
 Instagram: https://instagram.com/briankuria_ke
 
