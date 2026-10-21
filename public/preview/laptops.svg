@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 750" fill="none">
+  <title>Laptops</title>
+  <rect width="1200" height="750" fill="#0B0B0B"/>
+  <ellipse cx="600" cy="420" rx="430" ry="240" fill="#D6FF3A" fill-opacity="0.16"/>
+  <path d="M72 72H176M72 72V176" stroke="#D6FF3A" stroke-width="8"/>
+  <rect x="370" y="150" width="460" height="300" rx="16" fill="#F4F1EA"/>
+  <rect x="392" y="172" width="416" height="236" fill="#141414"/>
+  <rect x="392" y="408" width="416" height="16" fill="#D6FF3A"/>
+  <path d="M300 448H900L970 575H230L300 448Z" fill="#F4F1EA"/>
+  <rect x="545" y="500" width="110" height="12" rx="2" fill="#0B0B0B" fill-opacity="0.28"/>
+</svg>

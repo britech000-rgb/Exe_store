@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 750" fill="none">
+  <title>Software</title>
+  <rect width="1200" height="750" fill="#0B0B0B"/>
+  <ellipse cx="620" cy="400" rx="400" ry="230" fill="#D6FF3A" fill-opacity="0.16"/>
+  <path d="M72 72H176M72 72V176" stroke="#D6FF3A" stroke-width="8"/>
+  <g transform="rotate(-8 560 390)">
+    <rect x="300" y="250" width="460" height="300" rx="18" fill="#F4F1EA" fill-opacity="0.45"/>
+  </g>
+  <rect x="390" y="230" width="500" height="320" rx="18" fill="#F4F1EA"/>
+  <rect x="440" y="290" width="180" height="16" fill="#0B0B0B" fill-opacity="0.2"/>
+  <rect x="440" y="326" width="130" height="16" fill="#0B0B0B" fill-opacity="0.12"/>
+  <circle cx="760" cy="390" r="62" fill="#D6FF3A"/>
+  <circle cx="760" cy="390" r="20" fill="#0B0B0B"/>
+  <circle cx="520" cy="450" r="26" fill="none" stroke="#0B0B0B" stroke-width="10"/>
+  <rect x="540" y="442" width="100" height="14" fill="#0B0B0B"/>
+  <rect x="600" y="456" width="14" height="26" fill="#0B0B0B"/>
+  <rect x="624" y="456" width="14" height="18" fill="#0B0B0B"/>
+</svg>
