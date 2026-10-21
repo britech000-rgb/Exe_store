@@ -20,6 +20,9 @@ function instagramPaths(path: string) {
   if (path === "/trends") {
     return { story: "/instagram/story-trends-index.jpg", post: "/instagram/post-trends-index.jpg", fallback: "trends" };
   }
+  if (path === "/shop") {
+    return { story: "/instagram/story-shop-index.jpg", post: "/instagram/post-shop-index.jpg", fallback: "shop" };
+  }
   const guide = path.match(/^\/blog\/([^/]+)$/);
   if (guide) {
     return {
@@ -34,6 +37,14 @@ function instagramPaths(path: string) {
       story: `/instagram/story-trends-${note[1]}.jpg`,
       post: `/instagram/post-trends-${note[1]}.jpg`,
       fallback: "trends",
+    };
+  }
+  const product = path.match(/^\/shop\/([^/]+)$/);
+  if (product) {
+    return {
+      story: `/instagram/story-shop-${product[1]}.jpg`,
+      post: `/instagram/post-shop-${product[1]}.jpg`,
+      fallback: "shop",
     };
   }
   return null;
@@ -175,14 +186,9 @@ export function ShareMenu({ path, name, className = "button button-line", social
     reset();
     const filename = kind === "story" ? "exe-store-story.jpg" : "exe-store-post.jpg";
     const preferred = kind === "story" ? pictures.story : pictures.post;
+    const section = pictures.fallback === "shop" || pictures.fallback === "trends" ? pictures.fallback : "blog";
     const reserve =
-      pictures.fallback === "blog"
-        ? kind === "story"
-          ? "/instagram/story-blog-index.jpg"
-          : "/instagram/post-blog-index.jpg"
-        : kind === "story"
-          ? "/instagram/story-trends-index.jpg"
-          : "/instagram/post-trends-index.jpg";
+      kind === "story" ? `/instagram/story-${section}-index.jpg` : `/instagram/post-${section}-index.jpg`;
     let file: File;
     try {
       file = await loadImage(preferred, filename);

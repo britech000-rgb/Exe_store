@@ -3,7 +3,7 @@ import { existsSync } from "node:fs";
 import path from "node:path";
 import type { Metadata } from "next";
 
-export function shareImage(section: "blog" | "trends", slug?: string) {
+export function shareImage(section: "blog" | "trends" | "shop", slug?: string) {
   const named = slug ? `/social/${section}-${slug}.jpg` : `/social/${section}-index.jpg`;
   const disk = path.join(process.cwd(), "public", named.replace(/^\//, ""));
   if (existsSync(disk)) return named;

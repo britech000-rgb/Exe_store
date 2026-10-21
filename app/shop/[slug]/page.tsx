@@ -6,6 +6,7 @@ import { ShareMenu } from "@/components/ShareMenu";
 import { ZoomImage } from "@/components/ZoomImage";
 import { categories, getCategory } from "@/content/shop";
 import { breadcrumbLd, jsonLdScript } from "@/lib/seo";
+import { shareImage } from "@/lib/share-image";
 import { absoluteUrl } from "@/lib/site-url";
 
 type Props = { params: Promise<{ slug: string }> };
@@ -20,14 +21,30 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
   const category = getCategory(slug);
   if (!category) return { title: "Not found" };
+  const image = shareImage("shop", category.slug);
   return {
     title: category.title,
     description: category.summary,
     alternates: { canonical: `/shop/${category.slug}` },
     openGraph: {
+      url: `/shop/${category.slug}`,
       title: category.title,
       description: category.summary,
-      images: [{ url: category.image, alt: category.imageAlt }],
+      images: [
+        {
+          url: image,
+          width: 1200,
+          height: 630,
+          alt: category.imageAlt,
+          type: "image/jpeg",
+        },
+      ],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: category.title,
+      description: category.summary,
+      images: [image],
     },
   };
 }
@@ -76,7 +93,7 @@ export default async function CategoryPage({ params }: Props) {
             <p className="availability">Availability is confirmed when the brief is checked. Nothing is reserved on this page.</p>
             <div className="share-actions">
               <AskLink message={category.askMessage} />
-              <ShareMenu path={path} name={category.title} />
+              <ShareMenu path={path} name={category.title} social />
             </div>
           </div>
         </div>

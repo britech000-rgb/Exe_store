@@ -23,8 +23,9 @@ def records(path: Path):
         slug = re.search(r'slug: "([^"]+)"', chunk)
         title = re.search(r'title: "([^"]+)"', chunk)
         image = re.search(r'image: "([^"]+)"', chunk)
+        summary = re.search(r'summary: "([^"]+)"', chunk)
         if slug and title and image:
-            found.append((slug.group(1), title.group(1), image.group(1)))
+            found.append((slug.group(1), title.group(1), image.group(1), summary.group(1) if summary else title.group(1)))
     return found
 
 
@@ -159,14 +160,19 @@ def post(photo: Path, kicker: str, title: str, dest: Path):
 
 def main():
     jobs = []
-    for slug, title, image in records(ROOT / "content" / "guides.ts"):
+    for slug, title, image, _summary in records(ROOT / "content" / "guides.ts"):
         jobs.append((f"blog-{slug}.jpg", image, "Blog & Insights", title))
-    for slug, title, image in records(ROOT / "content" / "notes.ts"):
+    for slug, title, image, _summary in records(ROOT / "content" / "notes.ts"):
         jobs.append((f"trends-{slug}.jpg", image, "Trends", title))
+    for slug, title, image, summary in records(ROOT / "content" / "shop.ts"):
+        line = summary.split(". ")[0].rstrip(".")
+        jobs.append((f"shop-{slug}.jpg", image, title, line))
     jobs.append(("blog-index.jpg", "/images/laptops.jpg", "Blog & Insights", "Read this before the brief."))
     jobs.append(("blog-default.jpg", "/images/laptops.jpg", "Blog & Insights", "Blog & Insights"))
     jobs.append(("trends-index.jpg", "/images/laptops.jpg", "Trends", "Say the work, not the slogan."))
     jobs.append(("trends-default.jpg", "/images/networking.jpg", "Trends", "Trends"))
+    jobs.append(("shop-index.jpg", "/images/laptops.jpg", "Shop", "Tell me what you need."))
+    jobs.append(("shop-default.jpg", "/images/desktops.jpg", "Shop", "The catalogue."))
     instagram = ROOT / "public" / "instagram"
     for name, image, kicker, title in jobs:
         photo = ROOT / "public" / image.lstrip("/")
