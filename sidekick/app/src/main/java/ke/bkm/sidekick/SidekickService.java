@@ -9,6 +9,8 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.PixelFormat;
 import android.graphics.drawable.GradientDrawable;
 import android.os.BatteryManager;
@@ -16,17 +18,16 @@ import android.os.Build;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
-import android.os.SystemClock;
 import android.provider.Settings;
 import android.util.TypedValue;
+import android.view.Choreographer;
 import android.view.Gravity;
 import android.view.MotionEvent;
+import android.view.ScaleGestureDetector;
 import android.view.View;
 import android.view.WindowManager;
-import android.view.animation.AccelerateDecelerateInterpolator;
 import android.view.inputmethod.EditorInfo;
 import android.widget.EditText;
-import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
@@ -40,45 +41,63 @@ public class SidekickService extends Service {
     static final String EXTRA_COUNT = "count";
 
     private static final int NOTICE = 7;
-    private static final int[] POSES = {
-            R.drawable.bkm_idle,
-            R.drawable.bkm_swing,
-            R.drawable.bkm_land,
-            R.drawable.bkm_dance,
-            R.drawable.bkm_think,
-            R.drawable.bkm_remind,
-            R.drawable.bkm_sleep,
-            R.drawable.bkm_celebrate,
-            R.drawable.bkm_reaction
-    };
 
     private final Handler handler = new Handler(Looper.getMainLooper());
+    private final MascotMotion motion = new MascotMotion();
     private WindowManager windows;
-    private View root;
-    private ImageView mascot;
-    private TextView bubble;
+    private MascotView body;
+    private WebLayer webs;
     private LinearLayout chat;
     private EditText input;
     private TextView transcript;
     private WindowManager.LayoutParams params;
-    private int poseIndex;
-    private long holdUntil;
+    private WindowManager.LayoutParams chatParams;
+    private WindowManager.LayoutParams webParams;
+    private ScaleGestureDetector scaleDetector;
+    private Bitmap[] walk;
+    private Bitmap[] climb;
+    private Bitmap[] swim;
+    private Bitmap[] dance;
+    private Bitmap[] web;
+    private Bitmap swing;
+    private Bitmap fall;
     private int lastCount = -1;
     private int lastBatteryBand = -1;
     private boolean chatOpen;
+    private boolean moved;
     private float downRawX;
     private float downRawY;
-    private int downX;
-    private int downY;
+    private long lastFrame;
+    private long saveAt;
 
-    private final Runnable animate = new Runnable() {
+    private final Choreographer.FrameCallback loop = new Choreographer.FrameCallback() {
         @Override
-        public void run() {
-            if (SystemClock.uptimeMillis() >= holdUntil) {
-                poseIndex = (poseIndex + 1) % POSES.length;
-                mascot.setImageResource(POSES[poseIndex]);
+        public void doFrame(long now) {
+            if (body == null) return;
+            float dt = lastFrame == 0L ? 0.016f : Math.min(0.05f, (now - lastFrame) / 1_000_000_000f);
+            lastFrame = now;
+            int bw = Math.max(body.getWidth(), params.width);
+            int bh = Math.max(body.getHeight(), params.height);
+            motion.tick(dt, screenW(), screenH(), bw, bh);
+            paintBody();
+            params.x = Math.round(motion.x);
+            params.y = Math.round(motion.y);
+            try {
+                windows.updateViewLayout(body, params);
+            } catch (IllegalArgumentException ignored) {
+                return;
             }
-            handler.postDelayed(this, 2600);
+            if (webs != null) {
+                webs.handX = params.x + bw * 0.5f;
+                webs.handY = params.y + bh * 0.32f;
+                webs.invalidate();
+            }
+            if (chatOpen) placeChat();
+            if (now > saveAt) {
+                saveAt = now + 1_000_000_000L;
+                SidekickPrefs.place(SidekickService.this, params.x, params.y);
+            }
+            Choreographer.getInstance().postFrameCallback(this);
         }
     };
 
@@ -94,7 +113,7 @@ public class SidekickService extends Service {
             if (ACTION_COUNT.equals(intent.getAction())) {
                 int count = intent.getIntExtra(EXTRA_COUNT, 0);
                 if (lastCount >= 0 && count > lastCount) {
-                    say("You got " + (count - lastCount) + " new notifications.", R.drawable.bkm_reaction, 5000);
+                    say("You got " + (count - lastCount) + " new notifications.");
                 }
                 lastCount = count;
             }
@@ -110,7 +129,7 @@ public class SidekickService extends Service {
             int percent = Math.round(level * 100f / scale);
             int band = percent <= 15 ? 15 : percent <= 20 ? 20 : 100;
             if (band < 100 && band != lastBatteryBand) {
-                say("Battery at " + percent + "%. Charge soon.", R.drawable.bkm_remind, 6000);
+                say("Battery at " + percent + "%. Charge soon.");
             }
             lastBatteryBand = band;
         }
@@ -129,12 +148,13 @@ public class SidekickService extends Service {
             return START_NOT_STICKY;
         }
         startLiving();
-        if (root == null) attach();
+        if (body == null) attach();
         return START_STICKY;
     }
 
     @Override
     public void onDestroy() {
+        Choreographer.getInstance().removeFrameCallback(loop);
         handler.removeCallbacksAndMessages(null);
         try {
             unregisterReceiver(commands);
@@ -144,10 +164,12 @@ public class SidekickService extends Service {
             unregisterReceiver(battery);
         } catch (IllegalArgumentException ignored) {
         }
-        if (root != null) {
-            windows.removeView(root);
-            root = null;
-        }
+        removeWindow(chat);
+        removeWindow(body);
+        removeWindow(webs);
+        body = null;
+        chat = null;
+        webs = null;
         super.onDestroy();
     }
 
@@ -155,17 +177,13 @@ public class SidekickService extends Service {
         String channelId = "bkm-living";
         NotificationManager manager = getSystemService(NotificationManager.class);
         if (manager.getNotificationChannel(channelId) == null) {
-            NotificationChannel channel = new NotificationChannel(
-                    channelId, getString(R.string.channel), NotificationManager.IMPORTANCE_LOW);
-            manager.createNotificationChannel(channel);
+            manager.createNotificationChannel(new NotificationChannel(
+                    channelId, getString(R.string.channel), NotificationManager.IMPORTANCE_LOW));
         }
         PendingIntent open = PendingIntent.getActivity(
                 this, 1, new Intent(this, MainActivity.class), PendingIntent.FLAG_IMMUTABLE);
         PendingIntent stop = PendingIntent.getService(
-                this,
-                2,
-                new Intent(this, SidekickService.class).setAction(ACTION_STOP),
-                PendingIntent.FLAG_IMMUTABLE);
+                this, 2, new Intent(this, SidekickService.class).setAction(ACTION_STOP), PendingIntent.FLAG_IMMUTABLE);
         Notification notification = new Notification.Builder(this, channelId)
                 .setSmallIcon(R.drawable.ic_notice)
                 .setContentTitle(getString(R.string.living))
@@ -188,17 +206,40 @@ public class SidekickService extends Service {
             return;
         }
         windows = getSystemService(WindowManager.class);
-        root = buildOverlay();
-        params = new WindowManager.LayoutParams(
-                WindowManager.LayoutParams.WRAP_CONTENT,
-                WindowManager.LayoutParams.WRAP_CONTENT,
-                WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
-                WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE | WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL,
-                PixelFormat.TRANSLUCENT);
-        params.gravity = Gravity.TOP | Gravity.START;
-        params.x = SidekickPrefs.x(this);
-        params.y = SidekickPrefs.y(this);
-        windows.addView(root, params);
+        motion.setDensity(getResources().getDisplayMetrics().density);
+        motion.scale = SidekickPrefs.scale(this);
+        motion.x = SidekickPrefs.x(this);
+        motion.y = SidekickPrefs.y(this);
+        loadFrames();
+
+        webs = new WebLayer(this);
+        webs.bind(motion);
+        webParams = overlay(WindowManager.LayoutParams.MATCH_PARENT, WindowManager.LayoutParams.MATCH_PARENT, true);
+        windows.addView(webs, webParams);
+
+        body = new MascotView(this);
+        params = overlay(paramsWidth(), paramsHeight(), false);
+        params.x = Math.round(motion.x);
+        params.y = Math.round(motion.y);
+        scaleDetector = new ScaleGestureDetector(this, new ScaleGestureDetector.SimpleOnScaleGestureListener() {
+            @Override
+            public boolean onScale(ScaleGestureDetector detector) {
+                motion.resize(detector.getScaleFactor());
+                applySize();
+                SidekickPrefs.setScale(SidekickService.this, motion.scale);
+                return true;
+            }
+        });
+        body.setOnTouchListener(this::onBodyTouch);
+        windows.addView(body, params);
+
+        chat = buildChat();
+        chatParams = overlay(dp(230), WindowManager.LayoutParams.WRAP_CONTENT, false);
+        chatParams.flags = WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL
+                | WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN;
+        chat.setVisibility(View.GONE);
+        windows.addView(chat, chatParams);
+
         IntentFilter filter = new IntentFilter();
         filter.addAction(ACTION_COUNT);
         filter.addAction(ACTION_STOP);
@@ -209,65 +250,179 @@ public class SidekickService extends Service {
             registerReceiver(commands, filter);
             registerReceiver(battery, new IntentFilter(Intent.ACTION_BATTERY_CHANGED));
         }
-        mascot.animate().translationY(-16f).setDuration(900)
-                .setInterpolator(new AccelerateDecelerateInterpolator())
-                .withEndAction(this::bobBack)
-                .start();
-        handler.postDelayed(animate, 2600);
-        say(getString(R.string.greeting), R.drawable.bkm_idle, 4200);
+        say(getString(R.string.greeting));
+        Choreographer.getInstance().postFrameCallback(loop);
     }
 
-    private void bobBack() {
-        if (mascot == null) return;
-        mascot.animate().translationY(0f).setDuration(900)
-                .setInterpolator(new AccelerateDecelerateInterpolator())
-                .withEndAction(() -> {
-                    if (mascot != null) {
-                        mascot.animate().translationY(-16f).setDuration(900)
-                                .setInterpolator(new AccelerateDecelerateInterpolator())
-                                .withEndAction(this::bobBack)
-                                .start();
-                    }
-                })
-                .start();
+    private boolean onBodyTouch(View view, MotionEvent event) {
+        scaleDetector.onTouchEvent(event);
+        if (scaleDetector.isInProgress()) return true;
+        switch (event.getActionMasked()) {
+            case MotionEvent.ACTION_DOWN:
+                moved = false;
+                downRawX = event.getRawX();
+                downRawY = event.getRawY();
+                motion.beginDrag(event.getRawX(), event.getRawY());
+                return true;
+            case MotionEvent.ACTION_MOVE:
+                if (Math.abs(event.getRawX() - downRawX) + Math.abs(event.getRawY() - downRawY) > dp(10)) {
+                    moved = true;
+                }
+                motion.dragTo(event.getRawX(), event.getRawY());
+                return true;
+            case MotionEvent.ACTION_UP:
+                motion.endGesture(!moved);
+                if (!moved) toggleChat();
+                return true;
+            default:
+                return false;
+        }
     }
 
-    private View buildOverlay() {
-        LinearLayout column = new LinearLayout(this);
-        column.setOrientation(LinearLayout.VERTICAL);
-        bubble = new TextView(this);
-        styleBubble(bubble);
-        bubble.setVisibility(View.GONE);
-        column.addView(bubble);
+    private void paintBody() {
+        String clip = motion.clip();
+        Bitmap bitmap = frameFor(clip);
+        boolean feet = !"swim".equals(clip);
+        body.show(bitmap, feet, motion.faceRight, motion.ceiling, motion.lean, motion.bob, motion.squash);
+    }
 
-        LinearLayout row = new LinearLayout(this);
-        row.setOrientation(LinearLayout.HORIZONTAL);
-        row.setGravity(Gravity.BOTTOM);
-        mascot = new ImageView(this);
-        mascot.setImageResource(R.drawable.bkm_swing);
-        mascot.setAdjustViewBounds(true);
-        int width = dp(132);
-        mascot.setLayoutParams(new LinearLayout.LayoutParams(width, LinearLayout.LayoutParams.WRAP_CONTENT));
-        mascot.setOnTouchListener(this::onMascotTouch);
-        row.addView(mascot);
+    private Bitmap frameFor(String clip) {
+        Bitmap[] set;
+        if ("climb".equals(clip)) set = climb;
+        else if ("swim".equals(clip)) set = swim;
+        else if ("dance".equals(clip)) set = dance;
+        else if ("web".equals(clip)) set = web;
+        else if ("swing".equals(clip)) return swing;
+        else if ("fall".equals(clip)) return fall;
+        else set = walk;
+        if (set == null || set.length == 0) return swing;
+        return set[Math.floorMod(motion.frame, set.length)];
+    }
 
-        chat = new LinearLayout(this);
-        chat.setOrientation(LinearLayout.VERTICAL);
-        chat.setPadding(dp(12), dp(12), dp(12), dp(12));
+    private void toggleChat() {
+        chatOpen = !chatOpen;
+        chat.setVisibility(chatOpen ? View.VISIBLE : View.GONE);
+        motion.pin(chatOpen);
+        if (chatOpen) {
+            transcript.setText(R.string.greeting);
+            placeChat();
+        }
+    }
+
+    private void placeChat() {
+        int bw = Math.max(body.getWidth(), params.width);
+        int gap = dp(8);
+        int chatW = dp(230);
+        int x = params.x + bw + gap;
+        if (x + chatW > screenW()) x = params.x - chatW - gap;
+        if (x < 0) x = dp(8);
+        chatParams.x = x;
+        chatParams.y = Math.max(dp(8), params.y);
+        try {
+            windows.updateViewLayout(chat, chatParams);
+        } catch (IllegalArgumentException ignored) {
+        }
+    }
+
+    private void submit() {
+        String text = input.getText().toString();
+        input.setText("");
+        transcript.setText(replyTo(text));
+    }
+
+    private String replyTo(String raw) {
+        String q = raw.toLowerCase(Locale.US).trim();
+        int bw = Math.max(body.getWidth(), params.width);
+        if (q.contains("bigger") || q.contains("large")) {
+            motion.command("bigger", screenW(), bw);
+            applySize();
+            SidekickPrefs.setScale(this, motion.scale);
+            return "Bigger.";
+        }
+        if (q.contains("smaller") || q.contains("small")) {
+            motion.command("smaller", screenW(), bw);
+            applySize();
+            SidekickPrefs.setScale(this, motion.scale);
+            return "Smaller.";
+        }
+        if (q.contains("swim")) {
+            motion.command("swim", screenW(), bw);
+            return "Swimming across.";
+        }
+        if (q.contains("climb")) {
+            motion.command("climb", screenW(), bw);
+            return "Climbing.";
+        }
+        if (q.contains("dance")) {
+            motion.command("dance", screenW(), bw);
+            return "Dancing.";
+        }
+        if (q.contains("play") || q.contains("jump")) {
+            motion.command("play", screenW(), bw);
+            return "Playing.";
+        }
+        if (q.contains("web") || q.contains("swing")) {
+            motion.command("web", screenW(), bw);
+            return "Throwing a web.";
+        }
+        if (q.contains("walk")) {
+            motion.command("walk", screenW(), bw);
+            return "Walking the floor.";
+        }
+        if (q.isEmpty() || q.matches(".*(hi|hey|yo|hello).*")) return getString(R.string.greeting);
+        if (q.contains("battery") || q.contains("charge")) return batteryLine();
+        if (q.contains("notification") || q.contains("alert")) {
+            if (lastCount < 0) return "Allow alert count, and I will tell you how many. I will not read the messages.";
+            return "You got " + lastCount + " notifications.";
+        }
+        if (q.contains("break") || q.contains("tired") || q.contains("rest")) {
+            motion.command("dance", screenW(), bw);
+            return "Time to take a break bro.";
+        }
+        if (q.contains("sleep") || q.contains("good night")) return "I will rest here. Tap me if you need me.";
+        if (q.contains("thank")) return "Anytime.";
+        Matcher minutes = Pattern.compile("(\\d+)").matcher(q);
+        if ((q.contains("remind") || q.contains("meeting")) && minutes.find()) {
+            int mins = Integer.parseInt(minutes.group(1));
+            handler.postDelayed(() -> say("Time for that reminder."), mins * 60_000L);
+            return "Meeting in " + mins + " minutes. I will tap you.";
+        }
+        return "Tell me to walk, climb, swim, dance, play, or throw a web. Or ask the battery.";
+    }
+
+    private String batteryLine() {
+        Intent sticky = Build.VERSION.SDK_INT >= 33
+                ? registerReceiver(null, new IntentFilter(Intent.ACTION_BATTERY_CHANGED), RECEIVER_EXPORTED)
+                : registerReceiver(null, new IntentFilter(Intent.ACTION_BATTERY_CHANGED));
+        if (sticky == null) return "I cannot see the battery yet.";
+        int level = sticky.getIntExtra(BatteryManager.EXTRA_LEVEL, -1);
+        int scale = sticky.getIntExtra(BatteryManager.EXTRA_SCALE, 100);
+        int percent = scale <= 0 ? level : Math.round(level * 100f / scale);
+        return "Battery at " + percent + "%." + (percent <= 20 ? " Charge soon." : "");
+    }
+
+    private void say(String text) {
+        if (body == null) return;
+        body.setLine(text);
+        handler.postDelayed(() -> {
+            if (body != null) body.setLine(null);
+        }, 4200);
+    }
+
+    private LinearLayout buildChat() {
+        LinearLayout panel = new LinearLayout(this);
+        panel.setOrientation(LinearLayout.VERTICAL);
+        panel.setPadding(dp(12), dp(12), dp(12), dp(12));
         GradientDrawable card = new GradientDrawable();
         card.setColor(0xF21C1914);
         card.setCornerRadius(dp(16));
-        chat.setBackground(card);
-        LinearLayout.LayoutParams chatParams = new LinearLayout.LayoutParams(dp(220), LinearLayout.LayoutParams.WRAP_CONTENT);
-        chatParams.leftMargin = dp(8);
-        chat.setLayoutParams(chatParams);
-        chat.setVisibility(View.GONE);
+        panel.setBackground(card);
 
         transcript = new TextView(this);
         transcript.setTextColor(0xFFF7F3EA);
         transcript.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15);
         transcript.setText(R.string.greeting);
-        chat.addView(transcript);
+        panel.addView(transcript);
 
         input = new EditText(this);
         input.setHint(R.string.ask_hint);
@@ -283,147 +438,123 @@ public class SidekickService extends Service {
             }
             return false;
         });
-        chat.addView(input);
+        panel.addView(input);
 
-        TextView send = new TextView(this);
-        send.setText(R.string.send);
-        send.setTextColor(0xFF12100C);
-        send.setBackground(pill());
-        send.setPadding(dp(12), dp(8), dp(12), dp(8));
-        send.setOnClickListener(v -> submit());
-        chat.addView(send);
-        row.addView(chat);
-        column.addView(row);
-        return column;
+        LinearLayout row = new LinearLayout(this);
+        row.setOrientation(LinearLayout.HORIZONTAL);
+        row.addView(chip(getString(R.string.send), v -> submit()));
+        row.addView(chip(getString(R.string.smaller), v -> resizeChip(0.85f)));
+        row.addView(chip(getString(R.string.bigger), v -> resizeChip(1.18f)));
+        panel.addView(row);
+        return panel;
     }
 
-    private boolean onMascotTouch(View view, MotionEvent event) {
-        switch (event.getAction()) {
-            case MotionEvent.ACTION_DOWN:
-                downRawX = event.getRawX();
-                downRawY = event.getRawY();
-                downX = params.x;
-                downY = params.y;
-                return true;
-            case MotionEvent.ACTION_MOVE:
-                params.x = downX + Math.round(event.getRawX() - downRawX);
-                params.y = downY + Math.round(event.getRawY() - downRawY);
-                windows.updateViewLayout(root, params);
-                return true;
-            case MotionEvent.ACTION_UP:
-                float moved = Math.abs(event.getRawX() - downRawX) + Math.abs(event.getRawY() - downRawY);
-                if (moved < dp(8)) toggleChat();
-                else SidekickPrefs.place(this, params.x, params.y);
-                return true;
-            default:
-                return false;
-        }
-    }
-
-    private void toggleChat() {
-        chatOpen = !chatOpen;
-        chat.setVisibility(chatOpen ? View.VISIBLE : View.GONE);
-        if (chatOpen) {
-            params.flags = WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL;
-            transcript.setText(R.string.greeting);
-            hold(R.drawable.bkm_idle, 8000);
-        } else {
-            params.flags = WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
-                    | WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL;
-        }
-        windows.updateViewLayout(root, params);
-    }
-
-    private void submit() {
-        String text = input.getText().toString();
-        input.setText("");
-        String answer = replyTo(text);
-        transcript.setText(answer);
-        int pose = poseFor(answer);
-        say(answer, pose, 7000);
-    }
-
-    private String replyTo(String raw) {
-        String q = raw.toLowerCase(Locale.US).trim();
-        if (q.isEmpty() || q.matches(".*(hi|hey|yo|hello).*")) {
-            return getString(R.string.greeting);
-        }
-        if (q.contains("battery") || q.contains("charge")) return batteryLine();
-        if (q.contains("notification") || q.contains("alert")) {
-            if (lastCount < 0) {
-                return "Allow alert count, and I will tell you how many. I will not read the messages.";
-            }
-            return "You got " + lastCount + " notifications.";
-        }
-        if (q.contains("break") || q.contains("tired") || q.contains("rest")) {
-            return "Time to take a break bro.";
-        }
-        if (q.contains("sleep") || q.contains("good night")) {
-            return "I will rest here. Tap me if you need me.";
-        }
-        if (q.contains("thank")) return "Anytime.";
-        Matcher minutes = Pattern.compile("(\\d+)").matcher(q);
-        if ((q.contains("remind") || q.contains("meeting")) && minutes.find()) {
-            int mins = Integer.parseInt(minutes.group(1));
-            handler.postDelayed(() -> say("Time for that reminder.", R.drawable.bkm_remind, 8000), mins * 60_000L);
-            return "Meeting in " + mins + " minutes. I will tap you.";
-        }
-        return "Tell me the battery, a break, or remind me in 30.";
-    }
-
-    private int poseFor(String answer) {
-        String q = answer.toLowerCase(Locale.US);
-        if (q.contains("break")) return R.drawable.bkm_sleep;
-        if (q.contains("rest here")) return R.drawable.bkm_sleep;
-        if (q.contains("battery") || q.contains("meeting") || q.contains("reminder")) return R.drawable.bkm_remind;
-        if (q.contains("notification")) return R.drawable.bkm_reaction;
-        if (q.contains("anytime")) return R.drawable.bkm_celebrate;
-        if (q.contains("how can i help")) return R.drawable.bkm_idle;
-        return R.drawable.bkm_think;
-    }
-
-    private String batteryLine() {
-        Intent sticky = Build.VERSION.SDK_INT >= 33
-                ? registerReceiver(null, new IntentFilter(Intent.ACTION_BATTERY_CHANGED), RECEIVER_EXPORTED)
-                : registerReceiver(null, new IntentFilter(Intent.ACTION_BATTERY_CHANGED));
-        if (sticky == null) return "I cannot see the battery yet.";
-        int level = sticky.getIntExtra(BatteryManager.EXTRA_LEVEL, -1);
-        int scale = sticky.getIntExtra(BatteryManager.EXTRA_SCALE, 100);
-        int percent = scale <= 0 ? level : Math.round(level * 100f / scale);
-        return "Battery at " + percent + "%." + (percent <= 20 ? " Charge soon." : "");
-    }
-
-    private void say(String text, int pose, long ms) {
-        if (bubble == null) return;
-        bubble.setText(text);
-        bubble.setVisibility(View.VISIBLE);
-        hold(pose, ms);
-        handler.postDelayed(() -> {
-            if (bubble != null && text.contentEquals(bubble.getText())) bubble.setVisibility(View.GONE);
-        }, ms);
-    }
-
-    private void hold(int pose, long ms) {
-        holdUntil = SystemClock.uptimeMillis() + ms;
-        mascot.setImageResource(pose);
-    }
-
-    private void styleBubble(TextView view) {
+    private TextView chip(String label, View.OnClickListener click) {
+        TextView view = new TextView(this);
+        view.setText(label);
         view.setTextColor(0xFF12100C);
-        view.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
-        view.setPadding(dp(12), dp(8), dp(12), dp(8));
-        view.setBackground(pill());
+        view.setPadding(dp(10), dp(8), dp(10), dp(8));
+        GradientDrawable pill = new GradientDrawable();
+        pill.setColor(0xFFE2B657);
+        pill.setCornerRadius(dp(16));
+        view.setBackground(pill);
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
-        lp.bottomMargin = dp(6);
+        lp.rightMargin = dp(6);
+        lp.topMargin = dp(8);
         view.setLayoutParams(lp);
+        view.setOnClickListener(click);
+        return view;
     }
 
-    private GradientDrawable pill() {
-        GradientDrawable drawable = new GradientDrawable();
-        drawable.setColor(0xFFE2B657);
-        drawable.setCornerRadius(dp(18));
-        return drawable;
+    private void resizeChip(float factor) {
+        motion.resize(factor);
+        applySize();
+        SidekickPrefs.setScale(this, motion.scale);
+    }
+
+    private void applySize() {
+        int w = paramsWidth();
+        int h = paramsHeight();
+        if (params == null || body == null) return;
+        params.width = w;
+        params.height = h;
+        try {
+            windows.updateViewLayout(body, params);
+        } catch (IllegalArgumentException ignored) {
+        }
+    }
+
+    private int paramsWidth() {
+        return Math.round(dp(138) * motion.scale);
+    }
+
+    private int paramsHeight() {
+        return Math.round(dp(220) * motion.scale);
+    }
+
+    private WindowManager.LayoutParams overlay(int width, int height, boolean passThrough) {
+        int flags = WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
+                | WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL
+                | WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN
+                | WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS
+                | WindowManager.LayoutParams.FLAG_HARDWARE_ACCELERATED;
+        if (passThrough) flags |= WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE;
+        WindowManager.LayoutParams layout = new WindowManager.LayoutParams(
+                width,
+                height,
+                WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
+                flags,
+                PixelFormat.TRANSLUCENT);
+        layout.gravity = Gravity.TOP | Gravity.START;
+        return layout;
+    }
+
+    private void loadFrames() {
+        walk = loadSet("bkm_walk_");
+        climb = loadSet("bkm_climb_");
+        swim = loadSet("bkm_swim_");
+        dance = loadSet("bkm_dance_");
+        web = loadSet("bkm_web_");
+        swing = decode(R.drawable.bkm_swing);
+        fall = decode(R.drawable.bkm_land);
+    }
+
+    private Bitmap[] loadSet(String prefix) {
+        Bitmap[] found = new Bitmap[4];
+        int count = 0;
+        for (int i = 0; i < 4; i++) {
+            int id = getResources().getIdentifier(prefix + i, "drawable", getPackageName());
+            if (id == 0) break;
+            found[count++] = decode(id);
+        }
+        Bitmap[] trimmed = new Bitmap[count];
+        System.arraycopy(found, 0, trimmed, 0, count);
+        return trimmed;
+    }
+
+    private Bitmap decode(int id) {
+        BitmapFactory.Options options = new BitmapFactory.Options();
+        options.inScaled = false;
+        return BitmapFactory.decodeResource(getResources(), id, options);
+    }
+
+    private void removeWindow(View view) {
+        if (view == null) return;
+        try {
+            windows.removeView(view);
+        } catch (IllegalArgumentException ignored) {
+        }
+    }
+
+    private int screenW() {
+        if (Build.VERSION.SDK_INT >= 30) return windows.getCurrentWindowMetrics().getBounds().width();
+        return getResources().getDisplayMetrics().widthPixels;
+    }
+
+    private int screenH() {
+        if (Build.VERSION.SDK_INT >= 30) return windows.getCurrentWindowMetrics().getBounds().height();
+        return getResources().getDisplayMetrics().heightPixels;
     }
 
     private int dp(int value) {

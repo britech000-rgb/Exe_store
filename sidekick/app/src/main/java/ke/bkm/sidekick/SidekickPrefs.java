@@ -31,4 +31,12 @@ final class SidekickPrefs {
     static void place(Context context, int x, int y) {
         prefs(context).edit().putInt("x", x).putInt("y", y).apply();
     }
+
+    static void setScale(Context context, float scale) {
+        prefs(context).edit().putFloat("scale", scale).apply();
+    }
+
+    static float scale(Context context) {
+        return prefs(context).getFloat("scale", 1f);
+    }
 }
