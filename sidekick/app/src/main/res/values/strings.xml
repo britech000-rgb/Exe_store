@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">BKM Sidekick</string>
+    <string name="title">BKM Sidekick</string>
+    <string name="tagline">Your phone is alive</string>
+    <string name="body">He sits on top of WhatsApp, Instagram, and the rest of your apps. Drag him anywhere. Tap him to talk. He can tell you the battery, how many alerts are waiting, and a reminder you set.</string>
+    <string name="privacy">Notification access only gives him the number of alerts. He does not read the messages. Turn each permission on yourself, and turn him off whenever you want.</string>
+    <string name="put_on_screen">Put him on my screen</string>
+    <string name="already_on">He is on your screen</string>
+    <string name="alerts">Allow alert count</string>
+    <string name="turn_off">Take him off the screen</string>
+    <string name="channel">BKM on screen</string>
+    <string name="living">BKM is on your screen</string>
+    <string name="living_detail">Tap the notification to open him. Stop removes him.</string>
+    <string name="stop">Stop</string>
+    <string name="ask_hint">Ask anything</string>
+    <string name="send">Send</string>
+    <string name="greeting">Yo Brian. How can I help you today?</string>
+</resources>
