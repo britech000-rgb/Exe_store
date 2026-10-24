@@ -213,8 +213,9 @@ final class MascotMotion {
     }
 
     private float frameStep() {
-        if (act == Act.RUN) return 0.055f;
-        if (act == Act.WALK || act == Act.CEILING || act == Act.DRAG) return 0.08f;
+        if (act == Act.RUN) return 0.06f;
+        // Walk art is an 8-frame step. Hold each pose long enough to see the foot leave the ground.
+        if (act == Act.WALK || act == Act.CEILING || act == Act.DRAG) return 0.12f;
         if (act == Act.CLIMB) return 0.11f;
         if (act == Act.DANCE || act == Act.PLAY || act == Act.SWIM) return 0.12f;
         if (act == Act.WEB) return 0.14f;
@@ -279,7 +280,11 @@ final class MascotMotion {
         y = floor;
         float pace = act == Act.RUN ? 18f : 14f;
         lean = (float) Math.sin(actTime * pace) * (act == Act.RUN ? 6f : 3.5f);
-        bob = (float) Math.abs(Math.sin(actTime * pace)) * -4f;
+        // Frames 2-3 and 6-7 are the airborne foot. Rise with that step, in dp so it shows on a phone.
+        int phase = Math.floorMod(frame, 8);
+        float hopDp = (phase == 2 || phase == 3 || phase == 6 || phase == 7) ? 6f
+                : (phase == 1 || phase == 5) ? 3f : 0f;
+        bob = -hopDp * density;
         x += (faceRight ? 1f : -1f) * speed(dpPerSec) * dt;
         if (x <= left) {
             x = left;

@@ -142,7 +142,10 @@ public class SidekickService extends Service {
             }
             if (ACTION_COUNT.equals(intent.getAction())) {
                 int count = intent.getIntExtra(EXTRA_COUNT, 0);
-                if (lastCount >= 0 && count > lastCount) {
+                String line = intent.getStringExtra(EXTRA_LINE);
+                if (line != null && !line.isEmpty()) {
+                    say(line);
+                } else if (lastCount >= 0 && count > lastCount) {
                     say("You got " + (count - lastCount) + " new notifications.");
                 }
                 lastCount = count;
