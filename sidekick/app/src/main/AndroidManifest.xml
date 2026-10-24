@@ -23,6 +23,10 @@
             <data android:scheme="https" />
         </intent>
         <package android:name="com.google.android.apps.youtube.music" />
+        <package android:name="com.spotify.music" />
+        <intent>
+            <action android:name="android.media.action.MEDIA_PLAY_FROM_SEARCH" />
+        </intent>
         <intent>
             <action android:name="android.intent.action.MAIN" />
             <category android:name="android.intent.category.LAUNCHER" />

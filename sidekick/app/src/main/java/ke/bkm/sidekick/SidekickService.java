@@ -15,6 +15,7 @@ import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 import android.content.pm.ServiceInfo;
 import android.graphics.Bitmap;
+import android.provider.MediaStore;
 import android.graphics.BitmapFactory;
 import android.graphics.PixelFormat;
 import android.graphics.drawable.GradientDrawable;
@@ -493,8 +494,8 @@ public class SidekickService extends Service {
         }
         if (wantsMusic(q)) {
             String query = musicQuery(q);
-            openMusic(query);
-            return "Opening " + query + ".";
+            if (startPlayback(query)) return "Playing " + query + ".";
+            return "Install YouTube Music, then say play " + query + " again. I start it myself.";
         }
         if (wantsInbox(q)) return Inbox.summary(this);
         if (asks(q, "swim")) {
@@ -606,13 +607,15 @@ public class SidekickService extends Service {
                 .replace("play", "")
                 .replaceAll("\\s+", " ")
                 .trim();
-        return query.isEmpty() ? "music" : query;
+        if (query.isEmpty()) return "music";
+        return query.replace("kingvon", "king von").replaceAll("\\s+", " ").trim();
     }
 
     private boolean wantsInbox(String q) {
         return q.contains("texted") || q.contains("texts") || q.contains("text me")
                 || q.contains("messag") || q.contains("sms") || q.contains("who wrote")
-                || q.contains("inbox") || (q.contains("text") && (q.contains("who") || q.contains("today")));
+                || q.contains("inbox") || q.contains("read my")
+                || (q.contains("text") && (q.contains("who") || q.contains("today") || q.contains("read")));
     }
 
     private boolean wantsResearch(String q) {
@@ -635,20 +638,32 @@ public class SidekickService extends Service {
         return "Looking that up.";
     }
 
-    private void openMusic(String query) {
+    /** Starts playback in a music app the phone already has. The song stays in that app. */
+    private boolean startPlayback(String query) {
+        if (playIn("com.google.android.apps.youtube.music", query)) return true;
+        if (playIn("com.spotify.music", query)) return true;
         String url = "https://music.youtube.com/search?q=" + Uri.encode(query);
-        Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
-        intent.setPackage("com.google.android.apps.youtube.music");
+        Intent browser = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
+        browser.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        try {
+            startActivity(browser);
+            return true;
+        } catch (ActivityNotFoundException ignored) {
+            return false;
+        }
+    }
+
+    private boolean playIn(String pkg, String query) {
+        Intent intent = new Intent(MediaStore.INTENT_ACTION_MEDIA_PLAY_FROM_SEARCH);
+        intent.setPackage(pkg);
+        intent.putExtra(SearchManager.QUERY, query);
+        intent.putExtra(MediaStore.EXTRA_MEDIA_FOCUS, "vnd.android.cursor.item/audio");
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
         try {
             startActivity(intent);
-        } catch (ActivityNotFoundException primary) {
-            Intent browser = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
-            browser.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-            try {
-                startActivity(browser);
-            } catch (ActivityNotFoundException ignored) {
-            }
+            return true;
+        } catch (ActivityNotFoundException ignored) {
+            return false;
         }
     }
 
