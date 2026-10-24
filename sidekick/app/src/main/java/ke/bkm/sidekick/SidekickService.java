@@ -13,6 +13,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.PackageManager;
+import android.content.pm.ResolveInfo;
 import android.content.pm.ServiceInfo;
 import android.graphics.Bitmap;
 import android.provider.MediaStore;
@@ -45,8 +46,10 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -496,9 +499,13 @@ public class SidekickService extends Service {
             return "Smaller.";
         }
         if (wantsMusic(q)) {
-            String query = musicQuery(q);
+            String query = musicQuery(raw);
+            if (query.isEmpty()) {
+                if (openMusicApp()) return "Which song? Say play, then any song or artist.";
+                return "Install YouTube Music or Spotify, then say play and the song.";
+            }
             if (startPlayback(query)) return "Playing " + query + ".";
-            return "Install YouTube Music, then say play " + query + " again. I start it myself.";
+            return "Install YouTube Music or Spotify, then say play " + query + " again.";
         }
         if (wantsInbox(q)) return Inbox.summary(this);
         if (asks(q, "swim")) {
@@ -598,20 +605,67 @@ public class SidekickService extends Service {
     }
 
     private boolean wantsMusic(String q) {
-        return q.contains("song") || q.contains("music") || q.contains("play me")
-                || (q.startsWith("play ") && q.length() > 5);
+        if (q.equals("play")) return false;
+        if (q.startsWith("play ") || q.startsWith("play me")) return true;
+        if (q.contains(" song") || q.startsWith("song ") || q.equals("song") || q.contains("songs")) return true;
+        if (q.contains(" music") || q.equals("music") || q.startsWith("music ")) return true;
+        if (q.contains("put on") || q.contains("listen to") || q.contains("wanna hear")
+                || q.contains("want to hear") || q.contains("want to listen")) return true;
+        if (q.startsWith("stream ") || q.startsWith("queue ")) return true;
+        if (q.startsWith("put ") && (q.endsWith(" on") || q.contains(" on "))) return true;
+        return q.matches(".*\\bplay\\s+\\S+.*");
     }
 
-    private String musicQuery(String q) {
-        String query = q.replace("play me", "")
-                .replace("a song", "")
-                .replace("song", "")
-                .replace("music", "")
-                .replace("play", "")
-                .replaceAll("\\s+", " ")
-                .trim();
-        if (query.isEmpty()) return "music";
-        return query.replace("kingvon", "king von").replaceAll("\\s+", " ").trim();
+    /**
+     * The song, artist, or style they named. Command words come off the front only,
+     * so a title like Coldplay is not cut down to "cold".
+     */
+    private String musicQuery(String raw) {
+        String text = raw.trim().replaceAll("^[\"']+|[\"'.!?]+$", "").trim();
+        String lower = text.toLowerCase(Locale.US);
+        if (lower.startsWith("put ") && lower.endsWith(" on") && lower.length() > 7) {
+            text = text.substring(4, text.length() - 3).trim();
+            lower = text.toLowerCase(Locale.US);
+        }
+        String[] prefixes = {
+                "can you please ", "could you please ", "can you ", "could you ", "please ",
+                "yo ", "hey ",
+                "i want to listen to ", "i wanna listen to ", "i want to hear ", "i wanna hear ",
+                "want to hear ", "wanna hear ", "want to listen to ", "listen to ",
+                "put on ", "play me a song by ", "play me the song ", "play me a song ", "play me some ",
+                "play me ", "play a song by ", "play the song ", "play a song ", "play some music by ",
+                "play some ", "play a ", "play an ", "play ",
+                "the song ", "a song ",
+                "stream ", "queue ", "song by ", "songs by ", "music by ", "something by ", "anything by "
+        };
+        boolean changed = true;
+        while (changed) {
+            changed = false;
+            for (String prefix : prefixes) {
+                if (lower.startsWith(prefix)) {
+                    text = text.substring(prefix.length()).trim();
+                    lower = text.toLowerCase(Locale.US);
+                    changed = true;
+                    break;
+                }
+            }
+        }
+        if (lower.startsWith("by ")) {
+            text = text.substring(3).trim();
+            lower = text.toLowerCase(Locale.US);
+        }
+        if (lower.endsWith(" please")) {
+            text = text.substring(0, text.length() - 8).trim();
+            lower = text.toLowerCase(Locale.US);
+        }
+        if (lower.endsWith(" now")) text = text.substring(0, text.length() - 4).trim();
+        if (text.isEmpty() || lower.equals("song") || lower.equals("songs") || lower.equals("music")
+                || lower.equals("a song") || lower.equals("some music") || lower.equals("something")
+                || lower.equals("anything") || lower.equals("me") || lower.equals("a")
+                || lower.equals("the") || lower.equals("some") || lower.equals("on") || lower.equals("to")) {
+            return "";
+        }
+        return text.replaceAll("(?i)\\bkingvon\\b", "King Von").replaceAll("\\s+", " ").trim();
     }
 
     private boolean wantsInbox(String q) {
@@ -641,10 +695,35 @@ public class SidekickService extends Service {
         return "Looking that up.";
     }
 
-    /** Starts playback in a music app the phone already has. The song stays in that app. */
+    private static final String[] PLAYERS = {
+            "com.google.android.apps.youtube.music",
+            "com.spotify.music",
+            "com.google.android.youtube",
+            "com.afmobi.boomplayer",
+            "com.audiomack",
+            "com.apple.android.music",
+            "deezer.android.app"
+    };
+
+    /** Starts the named song in a music app already on the phone. The audio stays in that app. */
     private boolean startPlayback(String query) {
-        if (playIn("com.google.android.apps.youtube.music", query)) return true;
-        if (playIn("com.spotify.music", query)) return true;
+        Set<String> tried = new LinkedHashSet<>();
+        for (String pkg : PLAYERS) {
+            tried.add(pkg);
+            if (playIn(pkg, query)) return true;
+        }
+        Intent probe = new Intent(MediaStore.INTENT_ACTION_MEDIA_PLAY_FROM_SEARCH);
+        probe.putExtra(SearchManager.QUERY, query);
+        probe.putExtra(MediaStore.EXTRA_MEDIA_FOCUS, "vnd.android.cursor.item/audio");
+        List<ResolveInfo> handlers = getPackageManager().queryIntentActivities(probe, 0);
+        if (handlers != null) {
+            for (ResolveInfo info : handlers) {
+                if (info.activityInfo == null) continue;
+                String pkg = info.activityInfo.packageName;
+                if (!tried.add(pkg)) continue;
+                if (playIn(pkg, query)) return true;
+            }
+        }
         String url = "https://music.youtube.com/search?q=" + Uri.encode(query);
         Intent browser = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
         browser.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
@@ -656,10 +735,26 @@ public class SidekickService extends Service {
         }
     }
 
+    private boolean openMusicApp() {
+        PackageManager manager = getPackageManager();
+        for (String pkg : PLAYERS) {
+            Intent launch = manager.getLaunchIntentForPackage(pkg);
+            if (launch == null) continue;
+            launch.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            try {
+                startActivity(launch);
+                return true;
+            } catch (ActivityNotFoundException ignored) {
+            }
+        }
+        return false;
+    }
+
     private boolean playIn(String pkg, String query) {
         Intent intent = new Intent(MediaStore.INTENT_ACTION_MEDIA_PLAY_FROM_SEARCH);
         intent.setPackage(pkg);
         intent.putExtra(SearchManager.QUERY, query);
+        intent.putExtra(MediaStore.EXTRA_MEDIA_TITLE, query);
         intent.putExtra(MediaStore.EXTRA_MEDIA_FOCUS, "vnd.android.cursor.item/audio");
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
         try {

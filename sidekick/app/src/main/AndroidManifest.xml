@@ -24,6 +24,11 @@
         </intent>
         <package android:name="com.google.android.apps.youtube.music" />
         <package android:name="com.spotify.music" />
+        <package android:name="com.google.android.youtube" />
+        <package android:name="com.afmobi.boomplayer" />
+        <package android:name="com.audiomack" />
+        <package android:name="com.apple.android.music" />
+        <package android:name="deezer.android.app" />
         <intent>
             <action android:name="android.media.action.MEDIA_PLAY_FROM_SEARCH" />
         </intent>

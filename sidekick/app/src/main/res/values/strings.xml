@@ -3,7 +3,7 @@
     <string name="app_name">BKM Sidekick</string>
     <string name="title">BKM Sidekick</string>
     <string name="tagline">Your phone is alive</string>
-    <string name="body">He steps while he walks: a foot leaves the ground, the stride opens, then the other foot lifts. He turns at the edge and only sometimes climbs. A sit leads into a look or a rest. Flick him and he flies. Pinch to resize. Tap to type. Double-tap to talk. Ask him to play a song, open an app, set a timer, or who texted you. A new text is read out loud on this phone.</string>
+    <string name="body">He steps while he walks: a foot leaves the ground, the stride opens, then the other foot lifts. He turns at the edge and only sometimes climbs. A sit leads into a look or a rest. Flick him and he flies. Pinch to resize. Tap to type. Double-tap to talk. Say play, then any song, artist, or style. Ask who texted you, or to open an app or set a timer. A new text is read out loud on this phone.</string>
     <string name="privacy">Alerts, texts, and contacts stay on this phone. He does not read other apps. A call opens the dialer so you still press call. Research only sends a question you ask, and only after you paste your own key.</string>
     <string name="put_on_screen">Put him on my screen</string>
     <string name="already_on">He is on your screen</string>
@@ -20,10 +20,10 @@
     <string name="living">BKM is on your screen</string>
     <string name="living_detail">Tap the notification to open him. Stop removes him.</string>
     <string name="stop">Stop</string>
-    <string name="ask_hint">Ask, or say play a song</string>
+    <string name="ask_hint">Say play, then any song</string>
     <string name="send">Send</string>
     <string name="talk">Talk</string>
     <string name="smaller">Smaller</string>
     <string name="bigger">Bigger</string>
-    <string name="greeting">Yo Brian. Watch the feet. Double-tap me and say what you need.</string>
+    <string name="greeting">Yo Brian. Name any song and I will start it.</string>
 </resources>
