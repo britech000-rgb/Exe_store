@@ -3,8 +3,8 @@
     <string name="app_name">BKM Sidekick</string>
     <string name="title">BKM Sidekick</string>
     <string name="tagline">Your phone is alive</string>
-    <string name="body">He walks, runs, climbs, swims, dances, and swings on his own. You do not pick the move. Pinch to resize. Drag him and let go to drop him. Tap to type. Double-tap, or Talk, and speak.</string>
-    <string name="privacy">Alerts let him tell you who wrote today and what the notification says. Texts and contacts stay on this phone. He does not send them to research. Research only sends a question you ask, and only after you paste your own key here.</string>
+    <string name="body">He walks the floor, turns at the edge, and only sometimes climbs. A sit leads into a look or a rest, then he sets off again. Flick him and he flies. Pinch to resize. Tap to type. Double-tap to talk. Ask him to open an app, set a timer, or who texted you.</string>
+    <string name="privacy">Alerts, texts, and contacts stay on this phone. He does not read other apps. A call opens the dialer so you still press call. Research only sends a question you ask, and only after you paste your own key.</string>
     <string name="put_on_screen">Put him on my screen</string>
     <string name="already_on">He is on your screen</string>
     <string name="alerts">Allow alert reading</string>

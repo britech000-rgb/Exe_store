@@ -44,6 +44,12 @@ final class MascotMotion {
     private int hops = 3;
     private float dragDx;
     private float dragDy;
+    private float flickX;
+    private float flickY;
+    private float lastFingerX;
+    private float lastFingerY;
+    private long lastFingerAt;
+    private float airLimit = 3f;
     private Act beforeDrag = Act.WALK;
     private int screenW = 1080;
     private int bodyW = 300;
@@ -64,11 +70,25 @@ final class MascotMotion {
         ceiling = false;
         dragDx = fingerX - x;
         dragDy = fingerY - y;
+        lastFingerX = fingerX;
+        lastFingerY = fingerY;
+        lastFingerAt = System.nanoTime();
+        flickX = 0f;
+        flickY = 0f;
         vx = 0f;
         vy = 0f;
     }
 
     void dragTo(float fingerX, float fingerY) {
+        long now = System.nanoTime();
+        float dt = (now - lastFingerAt) / 1_000_000_000f;
+        if (dt > 0.008f && dt < 0.25f) {
+            flickX = (fingerX - lastFingerX) / dt;
+            flickY = (fingerY - lastFingerY) / dt;
+        }
+        lastFingerX = fingerX;
+        lastFingerY = fingerY;
+        lastFingerAt = now;
         x = fingerX - dragDx;
         y = fingerY - dragDy;
     }
@@ -79,10 +99,16 @@ final class MascotMotion {
             return;
         }
         act = Act.FALL;
-        vy = 80f;
         actTime = 0f;
         webOn = false;
         ceiling = false;
+        float cap = speed(1400);
+        vx = Math.max(-cap, Math.min(cap, flickX));
+        vy = Math.max(-cap, Math.min(cap, flickY));
+        if (Math.hypot(vx, vy) < speed(120)) {
+            vx = 0f;
+            vy = speed(60);
+        }
     }
 
     void command(String name, int screenW, int bodyW) {
@@ -195,18 +221,56 @@ final class MascotMotion {
         return 0f;
     }
 
+    /** Next action depends on the one that just finished, the way Shimeji chains behaviors. */
     private void chooseNext() {
-        int roll = random.nextInt(100);
-        if (roll < 34) startWalk();
-        else if (roll < 46) startRun();
-        else if (roll < 58) startStand();
-        else if (roll < 66) startSit();
-        else if (roll < 74) startLook();
-        else if (roll < 81) startSleep();
-        else if (roll < 88) startDance();
-        else if (roll < 93) startPlay();
-        else if (roll < 97) startSwim();
-        else startWeb();
+        Act done = act;
+        if (done == Act.SIT) {
+            pick(Act.LOOK, 40, Act.SLEEP, 35, Act.STAND, 15, Act.WALK, 10);
+        } else if (done == Act.SLEEP) {
+            pick(Act.STAND, 45, Act.SIT, 25, Act.LOOK, 20, Act.WALK, 10);
+        } else if (done == Act.LOOK) {
+            pick(Act.WALK, 40, Act.STAND, 25, Act.SIT, 20, Act.RUN, 15);
+        } else if (done == Act.CLIMB || done == Act.CEILING) {
+            pick(Act.WALK, 45, Act.RUN, 20, Act.STAND, 20, Act.SIT, 15);
+        } else {
+            pick(Act.WALK, 26, Act.RUN, 10, Act.STAND, 14, Act.SIT, 16,
+                    Act.LOOK, 8, Act.SLEEP, 6, Act.DANCE, 8, Act.PLAY, 5, Act.SWIM, 4, Act.WEB, 3);
+        }
+    }
+
+    private void pick(Act a, int wa, Act b, int wb, Act c, int wc, Act d, int wd) {
+        pick(a, wa, b, wb, c, wc, d, wd, null, 0, null, 0, null, 0, null, 0, null, 0, null, 0);
+    }
+
+    private void pick(Act a, int wa, Act b, int wb, Act c, int wc, Act d, int wd,
+                      Act e, int we, Act f, int wf, Act g, int wg, Act h, int wh, Act i, int wi, Act j, int wj) {
+        int total = wa + wb + wc + wd + we + wf + wg + wh + wi + wj;
+        int roll = random.nextInt(Math.max(1, total));
+        Act chosen = a;
+        int cursor = wa;
+        if (roll >= cursor) { chosen = b; cursor += wb; }
+        if (roll >= cursor) { chosen = c; cursor += wc; }
+        if (roll >= cursor) { chosen = d; cursor += wd; }
+        if (roll >= cursor && e != null) { chosen = e; cursor += we; }
+        if (roll >= cursor && f != null) { chosen = f; cursor += wf; }
+        if (roll >= cursor && g != null) { chosen = g; cursor += wg; }
+        if (roll >= cursor && h != null) { chosen = h; cursor += wh; }
+        if (roll >= cursor && i != null) { chosen = i; cursor += wi; }
+        if (roll >= cursor && j != null) chosen = j;
+        startChosen(chosen);
+    }
+
+    private void startChosen(Act chosen) {
+        if (chosen == Act.RUN) startRun();
+        else if (chosen == Act.STAND) startStand();
+        else if (chosen == Act.SIT) startSit();
+        else if (chosen == Act.LOOK) startLook();
+        else if (chosen == Act.SLEEP) startSleep();
+        else if (chosen == Act.DANCE) startDance();
+        else if (chosen == Act.PLAY) startPlay();
+        else if (chosen == Act.SWIM) startSwim();
+        else if (chosen == Act.WEB) startWeb();
+        else startWalk();
     }
 
     private void roam(float dt, float dpPerSec, float left, float right, float floor) {
@@ -219,12 +283,12 @@ final class MascotMotion {
         x += (faceRight ? 1f : -1f) * speed(dpPerSec) * dt;
         if (x <= left) {
             x = left;
-            startClimb(Side.LEFT, true);
+            meetEdge(Side.LEFT);
             return;
         }
         if (x >= right) {
             x = right;
-            startClimb(Side.RIGHT, true);
+            meetEdge(Side.RIGHT);
             return;
         }
         if (actTime > 2.4f && random.nextFloat() < dt * 0.07f) faceRight = !faceRight;
@@ -237,6 +301,16 @@ final class MascotMotion {
         y = floor;
         bob = breath == 0f ? 0f : (float) Math.sin(actTime * 2.0) * breath;
         if (actTime > limit) chooseNext();
+    }
+
+    /** Most arrivals at a wall turn him around. Sometimes he grabs it, like Shimeji. */
+    private void meetEdge(Side side) {
+        if (random.nextFloat() < 0.30f) {
+            startClimb(side, true);
+            return;
+        }
+        faceRight = side == Side.LEFT;
+        actTime = 0f;
     }
 
     private void startWalk() {
@@ -287,8 +361,17 @@ final class MascotMotion {
 
     private void climb(float dt, float left, float right, float top, float floor) {
         x = wall == Side.LEFT ? left : right;
-        y += (climbUp ? -1f : 1f) * speed(95) * dt;
         lean = wall == Side.LEFT ? -8f : 8f;
+        if (actTime < 0.28f) return;
+        if (actTime > 0.7f && y < floor - 90f * density && random.nextFloat() < dt * 0.12f) {
+            act = Act.FALL;
+            vx = wall == Side.LEFT ? speed(180) : -speed(180);
+            vy = speed(20);
+            actTime = 0f;
+            ceiling = false;
+            return;
+        }
+        y += (climbUp ? -1f : 1f) * speed(95) * dt;
         if (climbUp && y <= top) {
             y = top;
             act = Act.CEILING;
@@ -296,6 +379,7 @@ final class MascotMotion {
             faceRight = wall == Side.LEFT;
             actTime = 0f;
             frame = 0;
+            airLimit = 1.5f + random.nextFloat() * 2.6f;
             return;
         }
         if (!climbUp && y >= floor) {
@@ -309,6 +393,17 @@ final class MascotMotion {
     private void ceiling(float dt, float left, float right, float top) {
         y = top;
         ceiling = true;
+        if (actTime > airLimit) {
+            if (random.nextFloat() < 0.45f) {
+                act = Act.FALL;
+                vy = speed(30);
+                vx = (faceRight ? 1f : -1f) * speed(80);
+                ceiling = false;
+                actTime = 0f;
+                return;
+            }
+            airLimit = actTime + 1.4f + random.nextFloat() * 2f;
+        }
         x += (faceRight ? 1f : -1f) * speed(100) * dt;
         lean = (float) Math.sin(actTime * 12.0) * 4f;
         if (faceRight && x >= right) {

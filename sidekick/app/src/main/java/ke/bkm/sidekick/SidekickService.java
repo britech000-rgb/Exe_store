@@ -52,7 +52,9 @@ import java.util.regex.Pattern;
 public class SidekickService extends Service {
     public static final String ACTION_STOP = "ke.bkm.sidekick.STOP";
     public static final String ACTION_COUNT = "ke.bkm.sidekick.COUNT";
+    public static final String ACTION_SAY = "ke.bkm.sidekick.SAY";
     static final String EXTRA_COUNT = "count";
+    static final String EXTRA_LINE = "line";
 
     private static final int NOTICE = 7;
 
@@ -90,6 +92,7 @@ public class SidekickService extends Service {
     private long lastFrame;
     private long saveAt;
     private long tapToken;
+    private boolean webWasOn;
 
     private final Choreographer.FrameCallback loop = new Choreographer.FrameCallback() {
         @Override
@@ -101,18 +104,23 @@ public class SidekickService extends Service {
             int bh = Math.max(body.getHeight(), params.height);
             motion.tick(dt, screenW(), screenH(), bw, bh);
             paintBody();
-            params.x = Math.round(motion.x);
-            params.y = Math.round(motion.y);
-            try {
-                windows.updateViewLayout(body, params);
-            } catch (IllegalArgumentException ignored) {
-                return;
+            int nx = Math.round(motion.x);
+            int ny = Math.round(motion.y);
+            if (nx != params.x || ny != params.y) {
+                params.x = nx;
+                params.y = ny;
+                try {
+                    windows.updateViewLayout(body, params);
+                } catch (IllegalArgumentException ignored) {
+                    return;
+                }
             }
-            if (webs != null) {
+            if (webs != null && (motion.webOn || webWasOn)) {
                 webs.handX = params.x + bw * 0.5f;
                 webs.handY = params.y + bh * 0.32f;
                 webs.invalidate();
             }
+            webWasOn = motion.webOn;
             if (chatOpen) placeChat();
             if (now > saveAt) {
                 saveAt = now + 1_000_000_000L;
@@ -170,6 +178,10 @@ public class SidekickService extends Service {
         }
         startLiving();
         if (body == null) attach();
+        if (intent != null && ACTION_SAY.equals(intent.getAction())) {
+            String line = intent.getStringExtra(EXTRA_LINE);
+            say(line == null || line.isEmpty() ? "Time for that reminder." : line);
+        }
         return START_STICKY;
     }
 
@@ -532,14 +544,49 @@ public class SidekickService extends Service {
             return "I will rest here. Tap me if you need me.";
         }
         if (q.contains("thank")) return "Anytime.";
+        if (q.contains("what time") || q.contains("the time") || q.equals("time")) return PhoneAssist.timeLine();
+        if (q.contains("what day") || q.contains("the date") || q.contains("today's date")) return PhoneAssist.dateLine();
+        if (q.startsWith("open ")) return PhoneAssist.openApp(this, raw.trim().substring(5));
+        if (q.startsWith("call ") || q.startsWith("dial ") || q.startsWith("phone ")) {
+            return PhoneAssist.dial(this, raw.trim().replaceFirst("(?i)^(call|dial|phone)\\s+", ""));
+        }
+        if (q.contains("timer") && (q.contains("set") || q.contains(" for") || q.startsWith("timer"))) {
+            return PhoneAssist.timer(this, timerSeconds(q));
+        }
+        if (q.contains("alarm")) return clockAlarm(q);
         Matcher minutes = Pattern.compile("(\\d+)").matcher(q);
         if ((q.contains("remind") || q.contains("meeting")) && minutes.find()) {
             int mins = Integer.parseInt(minutes.group(1));
-            handler.postDelayed(() -> say("Time for that reminder."), mins * 60_000L);
-            return "Meeting in " + mins + " minutes. I will tap you.";
+            return PhoneAssist.remind(this, mins, "Time for that reminder.");
         }
         if (wantsResearch(q)) return research(q);
-        return "I move on my own. Ask me to play a song, who texted you today, or to look something up.";
+        return "I move on my own. Ask me to play a song, who texted you, open an app, set a timer, or look something up.";
+    }
+
+    private int timerSeconds(String q) {
+        Matcher clock = Pattern.compile("(\\d+)\\s*(hour|minute|second|min|sec|hr)").matcher(q);
+        if (clock.find()) {
+            int amount = Integer.parseInt(clock.group(1));
+            String unit = clock.group(2);
+            if (unit.startsWith("hour") || unit.startsWith("hr")) return amount * 3600;
+            if (unit.startsWith("sec")) return amount;
+            return amount * 60;
+        }
+        Matcher number = Pattern.compile("(\\d+)").matcher(q);
+        if (number.find()) return Integer.parseInt(number.group(1)) * 60;
+        return 60;
+    }
+
+    private String clockAlarm(String q) {
+        Matcher clock = Pattern.compile("(\\d{1,2})(?::(\\d{2}))?\\s*(am|pm)?").matcher(q);
+        if (!clock.find()) return "Say alarm for 7:30.";
+        int hour = Integer.parseInt(clock.group(1));
+        int minute = clock.group(2) == null ? 0 : Integer.parseInt(clock.group(2));
+        String half = clock.group(3);
+        if ("pm".equals(half) && hour < 12) hour += 12;
+        if ("am".equals(half) && hour == 12) hour = 0;
+        if (hour > 23 || minute > 59) return "Say alarm for 7:30.";
+        return PhoneAssist.alarm(this, hour, minute);
     }
 
     private boolean asks(String q, String verb) {
