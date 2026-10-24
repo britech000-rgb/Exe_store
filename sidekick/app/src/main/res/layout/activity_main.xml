@@ -80,6 +80,74 @@
             android:textSize="16sp" />
 
         <Button
+            android:id="@+id/mic"
+            android:layout_width="match_parent"
+            android:layout_height="52dp"
+            android:layout_marginTop="10dp"
+            android:backgroundTint="@color/card"
+            android:text="@string/mic"
+            android:textAllCaps="false"
+            android:textColor="@color/ink"
+            android:textSize="16sp" />
+
+        <Button
+            android:id="@+id/texts"
+            android:layout_width="match_parent"
+            android:layout_height="52dp"
+            android:layout_marginTop="10dp"
+            android:backgroundTint="@color/card"
+            android:text="@string/texts"
+            android:textAllCaps="false"
+            android:textColor="@color/ink"
+            android:textSize="16sp" />
+
+        <Button
+            android:id="@+id/contacts"
+            android:layout_width="match_parent"
+            android:layout_height="52dp"
+            android:layout_marginTop="10dp"
+            android:backgroundTint="@color/card"
+            android:text="@string/contacts"
+            android:textAllCaps="false"
+            android:textColor="@color/ink"
+            android:textSize="16sp" />
+
+        <EditText
+            android:id="@+id/ai_key"
+            android:layout_width="match_parent"
+            android:layout_height="52dp"
+            android:layout_marginTop="16dp"
+            android:autofillHints=""
+            android:background="@color/card"
+            android:hint="@string/ai_hint"
+            android:importantForAutofill="no"
+            android:inputType="textPassword"
+            android:padding="12dp"
+            android:textColor="@color/ink"
+            android:textColorHint="#C8BBA4"
+            android:textSize="15sp" />
+
+        <Button
+            android:id="@+id/save_key"
+            android:layout_width="match_parent"
+            android:layout_height="52dp"
+            android:layout_marginTop="10dp"
+            android:backgroundTint="@color/card"
+            android:text="@string/save_key"
+            android:textAllCaps="false"
+            android:textColor="@color/ink"
+            android:textSize="16sp" />
+
+        <TextView
+            android:id="@+id/key_state"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="@string/key_missing"
+            android:textColor="#C8BBA4"
+            android:textSize="14sp" />
+
+        <Button
             android:id="@+id/stop"
             android:layout_width="match_parent"
             android:layout_height="52dp"

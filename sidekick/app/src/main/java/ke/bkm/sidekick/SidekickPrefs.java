@@ -39,4 +39,18 @@ final class SidekickPrefs {
     static float scale(Context context) {
         return prefs(context).getFloat("scale", 1f);
     }
+
+    static void setAiKey(Context context, String key) {
+        String clean = key == null ? "" : key.trim();
+        prefs(context).edit().putString("ai", clean).apply();
+    }
+
+    static String aiKey(Context context) {
+        return prefs(context).getString("ai", "");
+    }
+
+    static boolean hasAiKey(Context context) {
+        String key = aiKey(context);
+        return key != null && key.length() > 10;
+    }
 }

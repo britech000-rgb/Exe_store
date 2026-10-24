@@ -3,12 +3,12 @@ package ke.bkm.sidekick;
 import java.util.Random;
 
 /**
- * Screen-pet motion. The character walks the floor, climbs the walls,
- * crosses the ceiling, swims the open screen, dances, hops, and swings
- * from a web. Position is the top-left of his window.
+ * Shimeji-style screen pet. He picks his own actions. Nothing on screen
+ * is a button for walk, climb, or swim. Voice requests can still ask.
+ * Position is the top-left of his window.
  */
 final class MascotMotion {
-    enum Act { WALK, CLIMB, CEILING, SWIM, DANCE, PLAY, WEB, FALL, DRAG, ASSIST }
+    enum Act { WALK, RUN, STAND, SIT, LOOK, SLEEP, CLIMB, CEILING, SWIM, DANCE, PLAY, WEB, FALL, DRAG }
     enum Side { LEFT, RIGHT }
 
     private static final float MIN_SCALE = 0.5f;
@@ -32,12 +32,12 @@ final class MascotMotion {
     float webAx;
     float webAy;
     float webGrow;
-    boolean pinned;
 
     private final Random random = new Random();
     private float density = 3f;
     private float frameTime;
     private float actTime;
+    private float limit = 2f;
     private float swingAngle;
     private float swingVel;
     private float webLen;
@@ -45,6 +45,8 @@ final class MascotMotion {
     private float dragDx;
     private float dragDy;
     private Act beforeDrag = Act.WALK;
+    private int screenW = 1080;
+    private int bodyW = 300;
 
     void setDensity(float density) {
         this.density = density;
@@ -57,6 +59,7 @@ final class MascotMotion {
     void beginDrag(float fingerX, float fingerY) {
         beforeDrag = act == Act.DRAG ? beforeDrag : act;
         act = Act.DRAG;
+        actTime = 0f;
         webOn = false;
         ceiling = false;
         dragDx = fingerX - x;
@@ -72,7 +75,7 @@ final class MascotMotion {
 
     void endGesture(boolean tap) {
         if (tap) {
-            act = beforeDrag == Act.DRAG ? Act.WALK : beforeDrag;
+            act = beforeDrag == Act.DRAG || beforeDrag == Act.FALL ? Act.WALK : beforeDrag;
             return;
         }
         act = Act.FALL;
@@ -82,48 +85,48 @@ final class MascotMotion {
         ceiling = false;
     }
 
-    void pin(boolean on) {
-        pinned = on;
-        if (on) {
-            webOn = false;
-            ceiling = false;
-            if (act == Act.SWIM || act == Act.WEB || act == Act.PLAY || act == Act.CLIMB || act == Act.CEILING) {
-                act = Act.FALL;
-            }
-        }
-    }
-
     void command(String name, int screenW, int bodyW) {
-        pinned = false;
+        this.screenW = screenW;
+        this.bodyW = bodyW;
         if ("walk".equals(name)) startWalk();
+        else if ("run".equals(name)) startRun();
         else if ("climb".equals(name)) startClimb(faceRight ? Side.RIGHT : Side.LEFT, true);
-        else if ("swim".equals(name)) startSwim(screenW);
+        else if ("swim".equals(name)) startSwim();
         else if ("dance".equals(name)) startDance();
         else if ("play".equals(name)) startPlay();
-        else if ("web".equals(name)) startWeb(screenW, bodyW);
+        else if ("web".equals(name)) startWeb();
+        else if ("sleep".equals(name)) startSleep();
+        else if ("sit".equals(name)) startSit();
         else if ("bigger".equals(name)) resize(1.18f);
         else if ("smaller".equals(name)) resize(0.85f);
     }
 
     String clip() {
-        if (act == Act.DRAG) return "climb";
         if (act == Act.FALL) return "fall";
         if (act == Act.SWIM) return "swim";
-        if (act == Act.DANCE || act == Act.PLAY || act == Act.ASSIST) return "dance";
+        if (act == Act.DANCE || act == Act.PLAY) return "dance";
         if (act == Act.WEB) return webGrow < 1f ? "web" : "swing";
         if (act == Act.CLIMB) return "climb";
+        if (act == Act.STAND || act == Act.SIT) return "idle";
+        if (act == Act.LOOK) return "think";
+        if (act == Act.SLEEP) return "sleep";
         return "walk";
     }
 
     void tick(float dt, int screenW, int screenH, int bodyW, int bodyH) {
-        float step = act == Act.WALK || act == Act.CEILING ? 0.11f : 0.15f;
-        frameTime += dt;
-        if (frameTime >= step) {
-            frameTime -= step;
-            frame = (frame + 1) % 4;
+        this.screenW = screenW;
+        this.bodyW = bodyW;
+        float step = frameStep();
+        if (step > 0f) {
+            frameTime += dt;
+            if (frameTime >= step) {
+                frameTime -= step;
+                frame++;
+            }
         }
         actTime += dt;
-        squash += (1f - squash) * Math.min(1f, dt * 10f);
+        float squat = act == Act.SIT ? 0.9f : 1f;
+        squash += (squat - squash) * Math.min(1f, dt * 8f);
         bob = 0f;
         lean = 0f;
 
@@ -134,16 +137,29 @@ final class MascotMotion {
         float right = screenW - bodyW - margin;
         if (right < left) right = left;
 
-        if (pinned && act != Act.DRAG) {
-            assist(dt, left, floor);
-            return;
-        }
-
         switch (act) {
             case DRAG:
+                lean = (float) Math.sin(actTime * 16.0) * 12f;
+                bob = (float) Math.sin(actTime * 11.0) * 3f;
                 break;
             case WALK:
-                walk(dt, left, right, floor, screenW, bodyW);
+                roam(dt, 120f, left, right, floor);
+                break;
+            case RUN:
+                roam(dt, 230f, left, right, floor);
+                break;
+            case STAND:
+                pose(floor, 3f);
+                break;
+            case SIT:
+                pose(floor, 1f);
+                break;
+            case LOOK:
+                faceRight = ((int) (actTime / 0.9f)) % 2 == 0;
+                pose(floor, 2f);
+                break;
+            case SLEEP:
+                pose(floor, 0f);
                 break;
             case CLIMB:
                 climb(dt, left, right, top, floor);
@@ -155,7 +171,7 @@ final class MascotMotion {
                 swim(dt, left, right, top, floor);
                 break;
             case DANCE:
-                dance(dt, floor);
+                dance(floor);
                 break;
             case PLAY:
                 play(dt, left, right, floor);
@@ -164,34 +180,43 @@ final class MascotMotion {
                 web(dt, floor, bodyW, bodyH);
                 break;
             case FALL:
-            case ASSIST:
             default:
                 fall(dt, left, right, top, floor);
                 break;
         }
     }
 
-    private void assist(float dt, float left, float floor) {
-        act = Act.ASSIST;
-        ceiling = false;
-        webOn = false;
-        float home = left + 8f * density;
-        if (Math.abs(x - home) > 6f) {
-            faceRight = home > x;
-            x += (faceRight ? 1f : -1f) * speed(140) * dt;
-        }
-        y = floor;
-        bob = (float) Math.sin(actTime * 8.0) * 8f * density * 0.25f;
-        lean = (float) Math.sin(actTime * 6.0) * 4f;
+    private float frameStep() {
+        if (act == Act.RUN) return 0.055f;
+        if (act == Act.WALK || act == Act.CEILING || act == Act.DRAG) return 0.08f;
+        if (act == Act.CLIMB) return 0.11f;
+        if (act == Act.DANCE || act == Act.PLAY || act == Act.SWIM) return 0.12f;
+        if (act == Act.WEB) return 0.14f;
+        return 0f;
     }
 
-    private void walk(float dt, float left, float right, float floor, int screenW, int bodyW) {
+    private void chooseNext() {
+        int roll = random.nextInt(100);
+        if (roll < 34) startWalk();
+        else if (roll < 46) startRun();
+        else if (roll < 58) startStand();
+        else if (roll < 66) startSit();
+        else if (roll < 74) startLook();
+        else if (roll < 81) startSleep();
+        else if (roll < 88) startDance();
+        else if (roll < 93) startPlay();
+        else if (roll < 97) startSwim();
+        else startWeb();
+    }
+
+    private void roam(float dt, float dpPerSec, float left, float right, float floor) {
         ceiling = false;
         webOn = false;
         y = floor;
-        lean = (float) Math.sin(actTime * 14.0) * 3.5f;
-        bob = (float) Math.abs(Math.sin(actTime * 14.0)) * -3f;
-        x += (faceRight ? 1f : -1f) * speed(125) * dt;
+        float pace = act == Act.RUN ? 18f : 14f;
+        lean = (float) Math.sin(actTime * pace) * (act == Act.RUN ? 6f : 3.5f);
+        bob = (float) Math.abs(Math.sin(actTime * pace)) * -4f;
+        x += (faceRight ? 1f : -1f) * speed(dpPerSec) * dt;
         if (x <= left) {
             x = left;
             startClimb(Side.LEFT, true);
@@ -202,26 +227,51 @@ final class MascotMotion {
             startClimb(Side.RIGHT, true);
             return;
         }
-        if (actTime > 1.6f && random.nextFloat() < dt * 0.12f) {
-            faceRight = !faceRight;
-        }
-        if (actTime > 2.4f && random.nextFloat() < dt * 0.28f) {
-            int roll = random.nextInt(4);
-            if (roll == 0) startDance();
-            else if (roll == 1) startPlay();
-            else if (roll == 2) startSwim(screenW);
-            else startWeb(screenW, bodyW);
-        }
+        if (actTime > 2.4f && random.nextFloat() < dt * 0.07f) faceRight = !faceRight;
+        if (actTime > limit) chooseNext();
+    }
+
+    private void pose(float floor, float breath) {
+        ceiling = false;
+        webOn = false;
+        y = floor;
+        bob = breath == 0f ? 0f : (float) Math.sin(actTime * 2.0) * breath;
+        if (actTime > limit) chooseNext();
     }
 
     private void startWalk() {
-        act = Act.WALK;
+        begin(Act.WALK, 3.2f + random.nextFloat() * 4.8f);
+    }
+
+    private void startRun() {
+        begin(Act.RUN, 1.5f + random.nextFloat() * 2.0f);
+    }
+
+    private void startStand() {
+        begin(Act.STAND, 1.2f + random.nextFloat() * 2.4f);
+    }
+
+    private void startSit() {
+        begin(Act.SIT, 2.4f + random.nextFloat() * 4.0f);
+    }
+
+    private void startLook() {
+        begin(Act.LOOK, 1.6f + random.nextFloat() * 2.2f);
+    }
+
+    private void startSleep() {
+        begin(Act.SLEEP, 5f + random.nextFloat() * 7f);
+    }
+
+    private void begin(Act next, float seconds) {
+        act = next;
         actTime = 0f;
         frame = 0;
         ceiling = false;
         webOn = false;
         vx = 0f;
         vy = 0f;
+        limit = seconds;
     }
 
     private void startClimb(Side side, boolean up) {
@@ -252,7 +302,7 @@ final class MascotMotion {
             y = floor;
             faceRight = wall == Side.LEFT;
             squash = 0.86f;
-            startWalk();
+            chooseNext();
         }
     }
 
@@ -260,6 +310,7 @@ final class MascotMotion {
         y = top;
         ceiling = true;
         x += (faceRight ? 1f : -1f) * speed(100) * dt;
+        lean = (float) Math.sin(actTime * 12.0) * 4f;
         if (faceRight && x >= right) {
             x = right;
             startClimb(Side.RIGHT, false);
@@ -269,12 +320,8 @@ final class MascotMotion {
         }
     }
 
-    private void startSwim(int screenW) {
-        act = Act.SWIM;
-        actTime = 0f;
-        frame = 0;
-        ceiling = false;
-        webOn = false;
+    private void startSwim() {
+        begin(Act.SWIM, 4.8f);
         faceRight = x < screenW * 0.5f;
         vx = (faceRight ? 1f : -1f) * speed(170);
         vy = speed(30) * (random.nextBoolean() ? 1f : -1f);
@@ -285,7 +332,7 @@ final class MascotMotion {
         y += vy * dt;
         bob = (float) Math.sin(actTime * 7.0) * 10f;
         lean = (float) Math.sin(actTime * 7.0) * 6f;
-        if (actTime > 4.8f || x < left - 4 || x > right + 4 || y < top || y > floor) {
+        if (actTime > limit || x < left - 4 || x > right + 4 || y < top || y > floor) {
             act = Act.FALL;
             actTime = 0f;
             vy = 40f;
@@ -294,30 +341,22 @@ final class MascotMotion {
     }
 
     private void startDance() {
-        act = Act.DANCE;
-        actTime = 0f;
-        frame = 0;
-        ceiling = false;
-        webOn = false;
+        begin(Act.DANCE, 3.4f);
     }
 
-    private void dance(float dt, float floor) {
+    private void dance(float floor) {
         y = floor;
         bob = (float) Math.sin(actTime * 11.0) * 16f;
         lean = (float) Math.sin(actTime * 8.0) * 8f;
-        if (((int) (actTime * 2f)) % 2 == 0) faceRight = true;
-        else faceRight = actTime % 0.5f > 0.25f;
-        if (actTime > 3.4f) startWalk();
+        faceRight = ((int) (actTime * 2f)) % 2 == 0;
+        if (actTime > limit) chooseNext();
     }
 
     private void startPlay() {
-        act = Act.PLAY;
-        actTime = 0f;
+        begin(Act.PLAY, 4f);
         hops = 3;
         vy = -speed(620);
         vx = (faceRight ? 1f : -1f) * speed(80);
-        ceiling = false;
-        webOn = false;
     }
 
     private void play(float dt, float left, float right, float floor) {
@@ -330,20 +369,17 @@ final class MascotMotion {
             squash = 0.78f;
             hops--;
             if (hops <= 0) {
-                startWalk();
+                chooseNext();
                 return;
             }
             vy = -speed(560);
         }
     }
 
-    private void startWeb(int screenW, int bodyW) {
-        act = Act.WEB;
-        actTime = 0f;
-        frame = 0;
+    private void startWeb() {
+        begin(Act.WEB, 4.2f);
         webOn = true;
         webGrow = 0f;
-        ceiling = false;
         float reach = 160f * density + random.nextFloat() * 140f * density;
         webAx = Math.max(12f, Math.min(screenW - 12f, x + bodyW * 0.5f + (faceRight ? reach : -reach)));
         webAy = Math.max(8f, y - (120f + random.nextFloat() * 180f) * density);
@@ -374,7 +410,7 @@ final class MascotMotion {
         y = handY - bodyH * 0.22f;
         faceRight = swingVel >= 0f;
         lean = (float) Math.toDegrees(swingAngle) * 0.25f;
-        if (actTime > 3.6f) {
+        if (actTime > limit) {
             webOn = false;
             act = Act.FALL;
             actTime = 0f;
@@ -401,7 +437,7 @@ final class MascotMotion {
         if (y >= floor) {
             y = floor;
             squash = 0.8f;
-            startWalk();
+            chooseNext();
         }
     }
 

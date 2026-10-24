@@ -1,24 +1,36 @@
 package ke.bkm.sidekick;
 
+import android.Manifest;
 import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
+import android.app.SearchManager;
 import android.app.Service;
+import android.content.ActivityNotFoundException;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.pm.PackageManager;
+import android.content.pm.ServiceInfo;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.PixelFormat;
 import android.graphics.drawable.GradientDrawable;
+import android.net.Uri;
 import android.os.BatteryManager;
 import android.os.Build;
+import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
+import android.os.SystemClock;
 import android.provider.Settings;
+import android.speech.RecognitionListener;
+import android.speech.RecognizerIntent;
+import android.speech.SpeechRecognizer;
+import android.speech.tts.TextToSpeech;
 import android.util.TypedValue;
 import android.view.Choreographer;
 import android.view.Gravity;
@@ -31,6 +43,8 @@ import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -61,6 +75,12 @@ public class SidekickService extends Service {
     private Bitmap[] web;
     private Bitmap swing;
     private Bitmap fall;
+    private Bitmap idle;
+    private Bitmap think;
+    private Bitmap asleep;
+    private TextToSpeech tts;
+    private SpeechRecognizer speech;
+    private int listenGen;
     private int lastCount = -1;
     private int lastBatteryBand = -1;
     private boolean chatOpen;
@@ -69,6 +89,7 @@ public class SidekickService extends Service {
     private float downRawY;
     private long lastFrame;
     private long saveAt;
+    private long tapToken;
 
     private final Choreographer.FrameCallback loop = new Choreographer.FrameCallback() {
         @Override
@@ -156,6 +177,16 @@ public class SidekickService extends Service {
     public void onDestroy() {
         Choreographer.getInstance().removeFrameCallback(loop);
         handler.removeCallbacksAndMessages(null);
+        listenGen++;
+        if (speech != null) {
+            speech.destroy();
+            speech = null;
+        }
+        if (tts != null) {
+            tts.stop();
+            tts.shutdown();
+            tts = null;
+        }
         try {
             unregisterReceiver(commands);
         } catch (IllegalArgumentException ignored) {
@@ -193,10 +224,18 @@ public class SidekickService extends Service {
                 .setOngoing(true)
                 .build();
         if (Build.VERSION.SDK_INT >= 34) {
-            startForeground(NOTICE, notification, android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE);
+            startForeground(NOTICE, notification, foregroundTypes());
         } else {
             startForeground(NOTICE, notification);
         }
+    }
+
+    private int foregroundTypes() {
+        int type = ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE;
+        if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
+            type |= ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE;
+        }
+        return type;
     }
 
     private void attach() {
@@ -211,6 +250,9 @@ public class SidekickService extends Service {
         motion.x = SidekickPrefs.x(this);
         motion.y = SidekickPrefs.y(this);
         loadFrames();
+        tts = new TextToSpeech(this, status -> {
+            if (status == TextToSpeech.SUCCESS && tts != null) tts.setLanguage(Locale.US);
+        });
 
         webs = new WebLayer(this);
         webs.bind(motion);
@@ -234,9 +276,11 @@ public class SidekickService extends Service {
         windows.addView(body, params);
 
         chat = buildChat();
-        chatParams = overlay(dp(230), WindowManager.LayoutParams.WRAP_CONTENT, false);
-        chatParams.flags = WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL
+        chatParams = overlay(dp(250), WindowManager.LayoutParams.WRAP_CONTENT, false);
+        chatParams.flags = WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
+                | WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL
                 | WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN;
+        chatParams.softInputMode = WindowManager.LayoutParams.SOFT_INPUT_ADJUST_PAN;
         chat.setVisibility(View.GONE);
         windows.addView(chat, chatParams);
 
@@ -272,11 +316,29 @@ public class SidekickService extends Service {
                 return true;
             case MotionEvent.ACTION_UP:
                 motion.endGesture(!moved);
-                if (!moved) toggleChat();
+                if (!moved) onTap();
                 return true;
             default:
                 return false;
         }
+    }
+
+    private void onTap() {
+        long now = SystemClock.uptimeMillis();
+        if (tapToken != 0 && now - tapToken < 320) {
+            tapToken = 0;
+            if (!chatOpen) toggleChat();
+            startListening();
+            return;
+        }
+        tapToken = now;
+        long token = now;
+        handler.postDelayed(() -> {
+            if (tapToken == token) {
+                tapToken = 0;
+                toggleChat();
+            }
+        }, 280);
     }
 
     private void paintBody() {
@@ -287,13 +349,16 @@ public class SidekickService extends Service {
     }
 
     private Bitmap frameFor(String clip) {
+        if ("idle".equals(clip)) return idle != null ? idle : swing;
+        if ("think".equals(clip)) return think != null ? think : swing;
+        if ("sleep".equals(clip)) return asleep != null ? asleep : swing;
+        if ("swing".equals(clip)) return swing;
+        if ("fall".equals(clip)) return fall;
         Bitmap[] set;
         if ("climb".equals(clip)) set = climb;
         else if ("swim".equals(clip)) set = swim;
         else if ("dance".equals(clip)) set = dance;
         else if ("web".equals(clip)) set = web;
-        else if ("swing".equals(clip)) return swing;
-        else if ("fall".equals(clip)) return fall;
         else set = walk;
         if (set == null || set.length == 0) return swing;
         return set[Math.floorMod(motion.frame, set.length)];
@@ -302,17 +367,26 @@ public class SidekickService extends Service {
     private void toggleChat() {
         chatOpen = !chatOpen;
         chat.setVisibility(chatOpen ? View.VISIBLE : View.GONE);
-        motion.pin(chatOpen);
         if (chatOpen) {
+            chatParams.flags = WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL
+                    | WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN;
             transcript.setText(R.string.greeting);
             placeChat();
+        } else {
+            chatParams.flags = WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
+                    | WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL
+                    | WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN;
+        }
+        try {
+            windows.updateViewLayout(chat, chatParams);
+        } catch (IllegalArgumentException ignored) {
         }
     }
 
     private void placeChat() {
         int bw = Math.max(body.getWidth(), params.width);
         int gap = dp(8);
-        int chatW = dp(230);
+        int chatW = dp(250);
         int x = params.x + bw + gap;
         if (x + chatW > screenW()) x = params.x - chatW - gap;
         if (x < 0) x = dp(8);
@@ -327,59 +401,136 @@ public class SidekickService extends Service {
     private void submit() {
         String text = input.getText().toString();
         input.setText("");
-        transcript.setText(replyTo(text));
+        say(replyTo(text));
+    }
+
+    private void startListening() {
+        if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+            say("Open BKM and allow the microphone.");
+            return;
+        }
+        if (!SpeechRecognizer.isRecognitionAvailable(this)) {
+            say("Speech is not available on this phone.");
+            return;
+        }
+        final int gen = ++listenGen;
+        if (speech != null) {
+            speech.destroy();
+            speech = null;
+        }
+        try {
+            speech = SpeechRecognizer.createSpeechRecognizer(this);
+        } catch (SecurityException ex) {
+            say("Open BKM again so I can use the microphone.");
+            return;
+        }
+        speech.setRecognitionListener(new RecognitionListener() {
+            @Override public void onReadyForSpeech(Bundle params) {}
+            @Override public void onBeginningOfSpeech() {}
+            @Override public void onRmsChanged(float rmsdB) {}
+            @Override public void onBufferReceived(byte[] buffer) {}
+            @Override public void onEndOfSpeech() {}
+            @Override public void onPartialResults(Bundle partialResults) {}
+            @Override public void onEvent(int eventType, Bundle params) {}
+
+            @Override
+            public void onError(int error) {
+                if (gen != listenGen) return;
+                say("I didn't catch that.");
+            }
+
+            @Override
+            public void onResults(Bundle results) {
+                if (gen != listenGen) return;
+                listenGen++;
+                ArrayList<String> list = results.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
+                if (list == null || list.isEmpty()) {
+                    say("I didn't catch that.");
+                    return;
+                }
+                say(replyTo(list.get(0)));
+            }
+        });
+        Intent intent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
+        intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
+        intent.putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, false);
+        intent.putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 1);
+        try {
+            speech.startListening(intent);
+        } catch (SecurityException ex) {
+            say("Open BKM again so I can use the microphone.");
+            return;
+        }
+        if (body != null) body.setLine("Listening.");
     }
 
     private String replyTo(String raw) {
         String q = raw.toLowerCase(Locale.US).trim();
-        int bw = Math.max(body.getWidth(), params.width);
-        if (q.contains("bigger") || q.contains("large")) {
+        int bw = Math.max(body == null ? 0 : body.getWidth(), params == null ? 0 : params.width);
+        if (q.equals("bigger") || q.startsWith("bigger") || q.contains("make you bigger")) {
             motion.command("bigger", screenW(), bw);
             applySize();
             SidekickPrefs.setScale(this, motion.scale);
             return "Bigger.";
         }
-        if (q.contains("smaller") || q.contains("small")) {
+        if (q.equals("smaller") || q.startsWith("smaller") || q.contains("make you smaller")) {
             motion.command("smaller", screenW(), bw);
             applySize();
             SidekickPrefs.setScale(this, motion.scale);
             return "Smaller.";
         }
-        if (q.contains("swim")) {
+        if (wantsMusic(q)) {
+            String query = musicQuery(q);
+            openMusic(query);
+            return "Opening " + query + ".";
+        }
+        if (wantsInbox(q)) return Inbox.summary(this);
+        if (asks(q, "swim")) {
             motion.command("swim", screenW(), bw);
             return "Swimming across.";
         }
-        if (q.contains("climb")) {
+        if (asks(q, "climb")) {
             motion.command("climb", screenW(), bw);
             return "Climbing.";
         }
-        if (q.contains("dance")) {
+        if (asks(q, "dance")) {
             motion.command("dance", screenW(), bw);
             return "Dancing.";
         }
-        if (q.contains("play") || q.contains("jump")) {
+        if (q.equals("play") || asks(q, "jump") || asks(q, "hop")) {
             motion.command("play", screenW(), bw);
             return "Playing.";
         }
-        if (q.contains("web") || q.contains("swing")) {
+        if (q.equals("web") || q.contains("a web") || q.contains("throw a web") || asks(q, "swing")) {
             motion.command("web", screenW(), bw);
             return "Throwing a web.";
         }
-        if (q.contains("walk")) {
+        if (asks(q, "run")) {
+            motion.command("run", screenW(), bw);
+            return "Running.";
+        }
+        if (asks(q, "walk")) {
             motion.command("walk", screenW(), bw);
             return "Walking the floor.";
         }
-        if (q.isEmpty() || q.matches(".*(hi|hey|yo|hello).*")) return getString(R.string.greeting);
+        if (asks(q, "sit") || q.contains("sit down")) {
+            motion.command("sit", screenW(), bw);
+            return "Sitting for a bit.";
+        }
+        if (q.isEmpty() || q.matches("^(hi|hey|yo|yooh|hello)[.! ]*$")) return getString(R.string.greeting);
         if (q.contains("battery") || q.contains("charge")) return batteryLine();
         if (q.contains("notification") || q.contains("alert")) {
-            if (lastCount < 0) return "Allow alert count, and I will tell you how many. I will not read the messages.";
+            if (lastCount < 0) return "Allow alert reading, and I will count them and read what they say on this phone.";
             return "You got " + lastCount + " notifications.";
         }
         if (q.contains("break") || q.contains("tired") || q.contains("rest")) {
             motion.command("dance", screenW(), bw);
             return "Time to take a break bro.";
         }
-        if (q.contains("sleep") || q.contains("good night")) return "I will rest here. Tap me if you need me.";
+        if (q.contains("sleep") || q.contains("good night")) {
+            motion.command("sleep", screenW(), bw);
+            return "I will rest here. Tap me if you need me.";
+        }
         if (q.contains("thank")) return "Anytime.";
         Matcher minutes = Pattern.compile("(\\d+)").matcher(q);
         if ((q.contains("remind") || q.contains("meeting")) && minutes.find()) {
@@ -387,7 +538,88 @@ public class SidekickService extends Service {
             handler.postDelayed(() -> say("Time for that reminder."), mins * 60_000L);
             return "Meeting in " + mins + " minutes. I will tap you.";
         }
-        return "Tell me to walk, climb, swim, dance, play, or throw a web. Or ask the battery.";
+        if (wantsResearch(q)) return research(q);
+        return "I move on my own. Ask me to play a song, who texted you today, or to look something up.";
+    }
+
+    private boolean asks(String q, String verb) {
+        return q.equals(verb) || q.startsWith(verb + " ") || q.endsWith(" " + verb) || q.contains(" " + verb + " ");
+    }
+
+    private boolean wantsMusic(String q) {
+        return q.contains("song") || q.contains("music") || q.contains("play me")
+                || (q.startsWith("play ") && q.length() > 5);
+    }
+
+    private String musicQuery(String q) {
+        String query = q.replace("play me", "")
+                .replace("a song", "")
+                .replace("song", "")
+                .replace("music", "")
+                .replace("play", "")
+                .replaceAll("\\s+", " ")
+                .trim();
+        return query.isEmpty() ? "music" : query;
+    }
+
+    private boolean wantsInbox(String q) {
+        return q.contains("texted") || q.contains("texts") || q.contains("text me")
+                || q.contains("messag") || q.contains("sms") || q.contains("who wrote")
+                || q.contains("inbox") || (q.contains("text") && (q.contains("who") || q.contains("today")));
+    }
+
+    private boolean wantsResearch(String q) {
+        if (q.contains("research") || q.contains("idea") || q.contains("explain")
+                || q.contains("what is") || q.contains("who is") || q.contains("how do")
+                || q.contains("how to") || q.contains("why ")) return true;
+        return q.split("\\s+").length >= 5;
+    }
+
+    /** The question string only. Inbox text is never passed in. */
+    private String research(String question) {
+        if (!SidekickPrefs.hasAiKey(this)) {
+            openSearch(question);
+            return "Add a research key on the BKM screen and I can answer here. I opened a search.";
+        }
+        new Thread(() -> {
+            String answer = Research.answer(SidekickService.this, question);
+            handler.post(() -> say(answer));
+        }, "bkm-research").start();
+        return "Looking that up.";
+    }
+
+    private void openMusic(String query) {
+        String url = "https://music.youtube.com/search?q=" + Uri.encode(query);
+        Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
+        intent.setPackage("com.google.android.apps.youtube.music");
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        try {
+            startActivity(intent);
+        } catch (ActivityNotFoundException primary) {
+            Intent browser = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
+            browser.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            try {
+                startActivity(browser);
+            } catch (ActivityNotFoundException ignored) {
+            }
+        }
+    }
+
+    private void openSearch(String query) {
+        Intent intent = new Intent(Intent.ACTION_WEB_SEARCH);
+        intent.putExtra(SearchManager.QUERY, query);
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        try {
+            startActivity(intent);
+        } catch (ActivityNotFoundException primary) {
+            Intent browser = new Intent(Intent.ACTION_VIEW,
+                    Uri.parse("https://www.google.com/search?q=" + Uri.encode(query)));
+            browser.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            try {
+                startActivity(browser);
+            } catch (ActivityNotFoundException ignored) {
+            }
+        }
     }
 
     private String batteryLine() {
@@ -402,11 +634,15 @@ public class SidekickService extends Service {
     }
 
     private void say(String text) {
-        if (body == null) return;
-        body.setLine(text);
+        if (text == null || text.isEmpty() || body == null) return;
+        if (transcript != null && chatOpen) transcript.setText(text);
+        String spoken = text.length() > 350 ? text.substring(0, 350) : text;
+        if (tts != null) tts.speak(spoken, TextToSpeech.QUEUE_FLUSH, null, "bkm");
+        String bubble = spoken.length() > 48 ? spoken.substring(0, 46) + "…" : spoken;
+        body.setLine(bubble);
         handler.postDelayed(() -> {
             if (body != null) body.setLine(null);
-        }, 4200);
+        }, 5200);
     }
 
     private LinearLayout buildChat() {
@@ -443,6 +679,7 @@ public class SidekickService extends Service {
         LinearLayout row = new LinearLayout(this);
         row.setOrientation(LinearLayout.HORIZONTAL);
         row.addView(chip(getString(R.string.send), v -> submit()));
+        row.addView(chip(getString(R.string.talk), v -> startListening()));
         row.addView(chip(getString(R.string.smaller), v -> resizeChip(0.85f)));
         row.addView(chip(getString(R.string.bigger), v -> resizeChip(1.18f)));
         panel.addView(row);
@@ -518,19 +755,19 @@ public class SidekickService extends Service {
         web = loadSet("bkm_web_");
         swing = decode(R.drawable.bkm_swing);
         fall = decode(R.drawable.bkm_land);
+        idle = decode(R.drawable.bkm_idle);
+        think = decode(R.drawable.bkm_think);
+        asleep = decode(R.drawable.bkm_sleep);
     }
 
     private Bitmap[] loadSet(String prefix) {
-        Bitmap[] found = new Bitmap[4];
-        int count = 0;
-        for (int i = 0; i < 4; i++) {
+        List<Bitmap> found = new ArrayList<>();
+        for (int i = 0; i < 12; i++) {
             int id = getResources().getIdentifier(prefix + i, "drawable", getPackageName());
             if (id == 0) break;
-            found[count++] = decode(id);
+            found.add(decode(id));
         }
-        Bitmap[] trimmed = new Bitmap[count];
-        System.arraycopy(found, 0, trimmed, 0, count);
-        return trimmed;
+        return found.toArray(new Bitmap[0]);
     }
 
     private Bitmap decode(int id) {
@@ -548,11 +785,13 @@ public class SidekickService extends Service {
     }
 
     private int screenW() {
+        if (windows == null) return getResources().getDisplayMetrics().widthPixels;
         if (Build.VERSION.SDK_INT >= 30) return windows.getCurrentWindowMetrics().getBounds().width();
         return getResources().getDisplayMetrics().widthPixels;
     }
 
     private int screenH() {
+        if (windows == null) return getResources().getDisplayMetrics().heightPixels;
         if (Build.VERSION.SDK_INT >= 30) return windows.getCurrentWindowMetrics().getBounds().height();
         return getResources().getDisplayMetrics().heightPixels;
     }
